@@ -11,10 +11,15 @@
     evil-nerd-commenter
     evil-tabs
     paredit
+    smartparens
     undo-tree
     zenburn-theme
     use-package
     icicles
+    helm
+    fuzzy-match
+    fuzzy
+    el-swank-fuzzy
     ace-jump-mode
     eldoc
     diminish)

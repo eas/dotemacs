@@ -38,7 +38,8 @@
 (defconst elpa-modes
   '(init-evil
     init-icy
-    init-paredit)
+    init-paredit
+    init-smartparens)
   "List of elpa packages to be configured")
 
 (my-require-list elpa-modes)
