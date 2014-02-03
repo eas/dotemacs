@@ -20,6 +20,7 @@
            "c" 'evilnc-comment-or-uncomment-lines
            "o" 'other-window
            "q" 'previous-multiframe-window
+           "g" 'ace-jump-mode
            "z" 'suspend-frame)))
     (use-package evil-tabs
       :init (global-evil-tabs-mode t))

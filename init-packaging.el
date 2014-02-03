@@ -15,6 +15,7 @@
     zenburn-theme
     use-package
     icicles
+    ace-jump-mode
     eldoc
     diminish)
   "Packages from ELPA I always want to install.")
