@@ -29,6 +29,9 @@
   :config
   (progn
     (define-key evil-ex-map "e " 'find-file)
-    (define-key evil-ex-map "b " 'switch-to-buffer)))
+    (define-key evil-ex-map "b " 'switch-to-buffer)
+    (define-key evil-normal-state-map (kbd "C-j") 'evil-normal-state)
+    (define-key evil-insert-state-map (kbd "C-j") 'evil-normal-state)
+    (define-key evil-visual-state-map (kbd "C-j") 'evil-normal-state)))
 
 (provide 'init-evil)
