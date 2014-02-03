@@ -33,7 +33,7 @@
     init-ediff)
   "List of core Emacs packages to be tuned")
 
-(eas-require-list core-modes)
+(my-require-list core-modes)
 
 (defconst elpa-modes
   '(init-evil
@@ -41,4 +41,4 @@
     init-paredit)
   "List of elpa packages to be configured")
 
-(eas-require-list elpa-modes)
+(my-require-list elpa-modes)

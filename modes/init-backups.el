@@ -1,6 +1,6 @@
 (setq
- tmp-backups-dir (eas-join-dirs tmp-local-dir "backups")
- tmp-autosaves-dir (eas-join-dirs tmp-local-dir "autosaves"))
+ tmp-backups-dir (my-join-dirs tmp-local-dir "backups")
+ tmp-autosaves-dir (my-join-dirs tmp-local-dir "autosaves"))
 
 (make-directory tmp-backups-dir t)
 (make-directory tmp-autosaves-dir t)
