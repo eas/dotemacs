@@ -42,3 +42,4 @@
   "List of elpa packages to be configured")
 
 (my-require-list elpa-modes)
+(load-theme 'zenburn t)
