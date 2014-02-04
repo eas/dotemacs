@@ -21,6 +21,7 @@
     fuzzy
     el-swank-fuzzy
     ace-jump-mode
+    magit
     eldoc
     diminish)
   "Packages from ELPA I always want to install.")
