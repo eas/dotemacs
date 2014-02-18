@@ -5,17 +5,9 @@
   '(bookmark+
     dired+
     dsvn
-    elscreen
-    evil
-    evil-leader
-    evil-nerd-commenter
-    evil-tabs
-    paredit
-    smartparens
-    undo-tree
     zenburn-theme
+    undo-tree
     use-package
-    icicles
     helm
     fuzzy-match
     fuzzy

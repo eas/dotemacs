@@ -1,4 +1,5 @@
 (use-package paredit
+  :ensure paredit
   :config
   (progn
     ;; Enable `paredit-mode' in the minibuffer, during `eval-expression'.

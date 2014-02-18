@@ -26,21 +26,18 @@
 (require 'init-use-package)
 
 
-;; Configuration for built-in modes
-(defconst core-modes
-  '(init-uniquify
-    init-emacs-lisp
-    init-ediff)
-  "List of core Emacs packages to be tuned")
-
-(my-require-list core-modes)
-
-(defconst elpa-modes
+(defconst my-init-files
   '(init-evil
     init-icy
     init-paredit
-    init-smartparens)
-  "List of elpa packages to be configured")
+    init-smartparens
+    init-uniquify
+    init-emacs-lisp
+    init-ediff
+    init-eshell
+    init-ido
+    init-highlight-parens
+    init-colorscheme)
+  "List of init files to be loaded")
 
-(my-require-list elpa-modes)
-(load-theme 'zenburn t)
+(my-require-list my-init-files)

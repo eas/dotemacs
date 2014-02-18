@@ -1,4 +1,5 @@
 (use-package icicles
+  :ensure icicles
   :init
   (progn (icy-mode t))
   :config

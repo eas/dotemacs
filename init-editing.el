@@ -1,6 +1,5 @@
 ;;; General editing configuration.
 
-;; Don't show the splash screen.
 (setq inhibit-startup-screen t
       ;; Show the *scratch* on startup.
       initial-buffer-choice t)
@@ -10,6 +9,9 @@
  indent-tabs-mode nil
  ;; ... and I prefer 4-space indents
  tab-width 4)
+
+;; Don't wrap lines
+(setq-default truncate-lines t)
 
 ;; UTF-8 please!
 (set-terminal-coding-system 'utf-8)
@@ -30,5 +32,15 @@
 
 ;; Not sure if it is really needed. Told to be laggy.
 (setq w32-get-true-file-attributes nil)
+
+(line-number-mode t)                    ; have line numbers and
+(column-number-mode t)                  ; column numbers in the mode line
+(global-hl-line-mode t)                 ; highlight current line
+(menu-bar-mode -1)                      ; no menu (questionable)
+
+(when window-system
+  (tool-bar-mode -1)                    ; definetely don't want to see toolbar
+  (scroll-bar-mode -1)                  ; probably not needed
+  (set-face-attribute 'default nil :height 100 :family "Lucida Console"))
 
 (provide 'init-editing)

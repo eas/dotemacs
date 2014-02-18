@@ -1,5 +1,6 @@
 ;;; My custom Emacs lisp functions
 
+;; TODO eval-when-compile?
 (require 'cl)
 
 (defun my-join-dirs (prefix suffix)
@@ -11,6 +12,9 @@
   (interactive)
   (dolist (item items)
     (require `,item nil t)))
+
+(defmacro my-with-face (str &rest properties)
+  `(propertize ,str 'face (list ,@properties)))
 
 
 (provide 'init-utils)
