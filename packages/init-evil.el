@@ -31,7 +31,9 @@
       (progn
         (use-package elscreen
           :ensure elscreen)
-        (global-evil-tabs-mode t)))
+        (global-evil-tabs-mode t)
+        (define-key evil-insert-state-map (kbd "C-x t") 'elscreen-toggle)
+        (define-key evil-normal-state-map (kbd "C-x t") 'elscreen-toggle)))
     (use-package evil-nerd-commenter
       :ensure evil-nerd-commenter)
         ;; enable by default
