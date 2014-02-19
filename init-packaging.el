@@ -13,6 +13,8 @@
     fuzzy
     el-swank-fuzzy
     ace-jump-mode
+    popwin
+    ssh
     magit
     eldoc
     diminish)
