@@ -7,3 +7,4 @@ server
 image-dired
 .ido.last
 eshell
+init-local.el

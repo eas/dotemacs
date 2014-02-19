@@ -37,7 +37,8 @@
     init-eshell
     init-ido
     init-highlight-parens
-    init-colorscheme)
+    init-colorscheme
+    init-local)
   "List of init files to be loaded")
 
 (my-require-list my-init-files)
