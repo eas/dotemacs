@@ -12,4 +12,18 @@
   (add-hook 'window-configuration-change-hook 'my-comint-fix-window-size nil t))
 
 (add-hook 'shell-mode-hook 'my-shell-mode-hook)
+
+(evil-define-key 'insert shell-mode-map
+  (kbd "C-r") 'icicle-comint-search
+  (kbd "C-p") 'comint-previous-input
+  (kbd "C-n") 'comint-next-input
+  )
+
+(evil-define-key 'normal shell-mode-map
+  (kbd "C-r") 'icicle-comint-search
+  (kbd "C-p") 'comint-previous-input
+  (kbd "C-n") 'comint-next-input
+  )
+
+(setq comint-prompt-regexp "^\$ ")
 (provide 'init-shell)
