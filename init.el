@@ -29,15 +29,18 @@
 (defconst my-init-files
   '(init-evil
     init-icy
+    init-ace-jump
     init-paredit
     init-smartparens
     init-uniquify
     init-emacs-lisp
     init-ediff
     init-eshell
+    init-shell
     init-ido
     init-highlight-parens
     init-colorscheme
+    init-winner-mode
     init-local)
   "List of init files to be loaded")
 
