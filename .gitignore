@@ -8,3 +8,5 @@ image-dired
 .ido.last
 eshell
 init-local.el
+tramp
+ac-comphist.dat
