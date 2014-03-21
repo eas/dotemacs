@@ -2,7 +2,7 @@
 
 (setq inhibit-startup-screen t
       ;; Show the *scratch* on startup.
-      initial-buffer-choice t)
+      initial-buffer-choice nil)
 
 ;; I prefer spaces over tabs
 (setq-default
@@ -42,5 +42,9 @@
   (tool-bar-mode -1)                    ; definetely don't want to see toolbar
   (scroll-bar-mode -1)                  ; probably not needed
   (set-face-attribute 'default nil :height 100 :family "Lucida Console"))
+
+
+;; Maybe it should be moved to separate c++/perl init files
+(modify-syntax-entry ?_ "w" c++-mode-syntax-table)
 
 (provide 'init-editing)

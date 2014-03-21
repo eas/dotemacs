@@ -16,14 +16,17 @@
            "b" 'ido-switch-buffer
            "x" 'smex
            "l" 'linum-mode
+           "k" 'delete-window
            "w" 'toggle-truncate-lines
            "d" 'ido-dired
            "t" 'speedbar-get-focus
-           "j" 'bookmark-jump
+           "j" 'bookmark-bmenu-list
            "c" 'evilnc-comment-or-uncomment-lines
            "o" 'other-window
            "q" 'previous-multiframe-window
            "g" 'ace-jump-mode
+           "hl" 'helm-locate
+           "u" 'revert-buffer
            "z" 'suspend-frame)))
     (use-package evil-tabs
       :ensure evil-tabs

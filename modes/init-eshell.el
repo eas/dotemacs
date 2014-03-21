@@ -14,7 +14,14 @@
          (my-with-face " #" :foreground "red")
        " $")
      " ")))
-(setq eshell-prompt-function 'my-eshell-prompt)
-(setq eshell-highlight-prompt nil)
+
+(use-package eshell
+  :ensure eshell
+  :config
+  (progn
+    (setq eshell-prompt-function 'my-eshell-prompt)
+    (setq eshell-highlight-prompt nil)
+    ;; (add-to-list 'eshell-visual-commands "git")
+))
 
 (provide 'init-eshell)

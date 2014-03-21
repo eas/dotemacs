@@ -41,6 +41,7 @@
     init-highlight-parens
     init-colorscheme
     init-winner-mode
+    init-dired
     init-local)
   "List of init files to be loaded")
 
