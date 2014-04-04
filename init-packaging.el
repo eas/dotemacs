@@ -8,11 +8,13 @@
     zenburn-theme
     undo-tree
     use-package
+    god-mode
     helm
     fuzzy-match
     fuzzy
     el-swank-fuzzy
     ace-jump-mode
+    switch-window
     popwin
     ssh
     magit

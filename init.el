@@ -25,7 +25,6 @@
 ;; It is used to asynchonously load and configure other packages
 (require 'init-use-package)
 
-
 (defconst my-init-files
   '(init-evil
     init-icy
@@ -42,7 +41,15 @@
     init-colorscheme
     init-winner-mode
     init-dired
+    init-fci
     init-local)
   "List of init files to be loaded")
 
 (my-require-list my-init-files)
+(require 'evil-god)
+;; These are easier in `god-mode'
+(global-set-key (kbd "C-x C-1") 'delete-other-windows)
+(global-set-key (kbd "C-x C-2") 'split-window-below)
+(global-set-key (kbd "C-x C-3") 'split-window-right)
+(global-set-key (kbd "C-x C-0") 'delete-window)
+

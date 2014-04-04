@@ -10,3 +10,5 @@ eshell
 init-local.el
 tramp
 ac-comphist.dat
+.emacs.desktop
+local

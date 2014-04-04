@@ -23,6 +23,7 @@
            "j" 'bookmark-bmenu-list
            "c" 'evilnc-comment-or-uncomment-lines
            "o" 'other-window
+           "O" 'switch-window
            "q" 'previous-multiframe-window
            "g" 'ace-jump-mode
            "hl" 'helm-locate
