@@ -41,6 +41,7 @@
     init-colorscheme
     init-winner-mode
     init-dired
+    init-helm
     init-fci
     init-local)
   "List of init files to be loaded")
