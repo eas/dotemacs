@@ -1,4 +1,7 @@
 ;; from https://gist.github.com/gridaphobe/9765143
+;; TODO: Swtich to MELPA: https://github.com/gridaphobe/evil-god-state
+
+
 (evil-define-state god
   "God state."
   :tag " <G> "
