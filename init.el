@@ -37,6 +37,7 @@
     init-eshell
     init-shell
     init-ido
+    init-org
     init-highlight-parens
     init-colorscheme
     init-winner-mode
