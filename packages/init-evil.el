@@ -14,6 +14,7 @@
            "f" 'ido-find-file
            "F" 'ido-find-file-other-window
            "b" 'ido-switch-buffer
+           "B" 'ido-switch-buffer-other-window
            "x" 'smex
            "l" 'linum-mode
            "k" 'delete-window
