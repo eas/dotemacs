@@ -20,7 +20,16 @@
 (prefer-coding-system 'utf-8)
 
 ;; Nuke trailing whitespace when writing to a file.
-(add-hook 'write-file-hooks 'delete-trailing-whitespace)
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+(defun my-save-buffer-without-dtw ()
+  (interactive)
+  (let ((b (current-buffer)))   ; memorize the buffer
+    (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
+      (let ((before-save-hook (remove 'delete-trailing-whitespace before-save-hook)))
+        (with-current-buffer b  ; go back to the current buffer, before-save-hook is now buffer-local
+          (let ((before-save-hook (remove 'delete-trailing-whitespace before-save-hook)))
+            (save-buffer)))))))
 
 ;; Always add a trailing newline - it's POSIX.
 (setq require-final-newline t)
