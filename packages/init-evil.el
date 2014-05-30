@@ -26,7 +26,6 @@
            "O" 'switch-window
            "q" 'previous-multiframe-window
            "g" 'ace-jump-mode
-           "hl" 'helm-locate
            "u" 'revert-buffer
            "z" 'suspend-frame)))
     (use-package evil-tabs
