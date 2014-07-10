@@ -16,6 +16,7 @@
            "b" 'ido-switch-buffer
            "B" 'ido-switch-buffer-other-window
            "x" 'smex
+           "X" 'helm-M-x
            "l" 'linum-mode
            "k" 'delete-window
            "w" 'toggle-truncate-lines

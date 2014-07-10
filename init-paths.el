@@ -18,5 +18,6 @@
 ;; tmp directory
 (make-directory (setq my-tmp-local-dir (my-join-dirs dotfiles-dir ".tmp")) t)
 (setq custom-file "~/.emacs-custom.el")
+(load custom-file)
 
 (provide 'init-paths)

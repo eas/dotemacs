@@ -44,6 +44,7 @@
     init-dired
     init-helm
     init-fci
+    ;; init-ws-butler
     init-local)
   "List of init files to be loaded")
 
@@ -55,3 +56,6 @@
 (global-set-key (kbd "C-x C-3") 'split-window-right)
 (global-set-key (kbd "C-x C-0") 'delete-window)
 
+;; TODO:
+(setq ssh-directory-tracking-mode t)
+(put 'narrow-to-region 'disabled nil)
