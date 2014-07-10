@@ -41,6 +41,9 @@
     (use-package evil-nerd-commenter
       :ensure evil-nerd-commenter)
         ;; enable by default
+    (use-package evil-jumper
+      :ensure evil-jumper
+      :init (require 'evil-jumper))
     (evil-mode 1))
   :config
   (progn
