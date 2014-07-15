@@ -44,6 +44,7 @@
     init-dired
     init-helm
     init-fci
+    init-haskell
     ;; init-ws-butler
     init-local)
   "List of init files to be loaded")

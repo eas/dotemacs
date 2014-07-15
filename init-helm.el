@@ -6,8 +6,9 @@
   (evil-leader/set-key
     "hl" 'helm-locate
     "he" 'helm-elscreen
-    "hf" 'helm-find
+    "hf" 'helm-find-files
     "hF" 'helm-complete-file-name-at-point
+    "hh" 'helm-mini
     "hg" 'helm-do-grep
     "ho" 'helm-swoop
     "hs" 'helm-swoop))

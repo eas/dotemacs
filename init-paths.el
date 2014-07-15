@@ -20,4 +20,6 @@
 (setq custom-file "~/.emacs-custom.el")
 (load custom-file)
 
+(setq recentf-exclude `(my-join-dirs dotfiles-dir "elpa"))
+
 (provide 'init-paths)
