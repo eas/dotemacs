@@ -10,6 +10,7 @@
   "Base path for customised Emacs configuration")
 
 (add-to-list 'load-path dotfiles-dir)
+(add-to-list 'load-path (concat dotfiles-dir "lisp"))
 
 ;; start a server, unless one is already running
 (when (require 'server nil t)
@@ -26,9 +27,12 @@
 (require 'init-use-package)
 
 (defconst my-init-files
-  '(init-evil
-    init-icy
+  '(
+    init-evil
+    ;; init-icy
+    ;; init-auto-complete
     init-ace-jump
+    init-company
     init-paredit
     init-smartparens
     init-uniquify
@@ -45,17 +49,20 @@
     init-helm
     init-fci
     init-haskell
+    init-flycheck
+    init-w3m
     ;; init-ws-butler
     init-local)
   "List of init files to be loaded")
 
 (my-require-list my-init-files)
-(require 'evil-god)
-;; These are easier in `god-mode'
-(global-set-key (kbd "C-x C-1") 'delete-other-windows)
-(global-set-key (kbd "C-x C-2") 'split-window-below)
-(global-set-key (kbd "C-x C-3") 'split-window-right)
-(global-set-key (kbd "C-x C-0") 'delete-window)
+
+;; (require 'evil-god)
+;; ;; These are easier in `god-mode'
+;; (global-set-key (kbd "C-x C-1") 'delete-other-windows)
+;; (global-set-key (kbd "C-x C-2") 'split-window-below)
+;; (global-set-key (kbd "C-x C-3") 'split-window-right)
+;; (global-set-key (kbd "C-x C-0") 'delete-window)
 
 ;; TODO:
 (setq ssh-directory-tracking-mode t)

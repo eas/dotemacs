@@ -54,7 +54,7 @@
   (set-face-attribute 'default nil :height 100 :family "Lucida Console"))
 
 
-;; Maybe it should be moved to separate c++/perl init files
+;; TODO: Maybe it should be moved to separate c++/perl init files
 (modify-syntax-entry ?_ "w" c++-mode-syntax-table)
 
 (provide 'init-editing)

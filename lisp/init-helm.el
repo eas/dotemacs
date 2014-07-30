@@ -1,7 +1,13 @@
 (use-package helm
   :ensure helm
   :init
-  (use-package helm-swoop)
+  (progn
+    (use-package helm-descbinds
+      :ensure helm-descbinds
+      :init
+      (helm-descbinds-mode))
+    (use-package helm-swoop
+      :ensure helm-swoop))
   :config
   (evil-leader/set-key
     "hl" 'helm-locate

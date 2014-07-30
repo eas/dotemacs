@@ -12,3 +12,7 @@ tramp
 ac-comphist.dat
 .emacs.desktop
 local
+.session
+.smex-items
+frame-restore-parameters
+history
