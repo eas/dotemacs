@@ -8,7 +8,8 @@
 (setq-default
  indent-tabs-mode nil
  ;; ... and I prefer 4-space indents
- tab-width 4)
+ tab-width 4
+ sentence-end-double-space nil)
 
 ;; Don't wrap lines
 (setq-default truncate-lines t)
