@@ -12,7 +12,7 @@
       :ensure ido-vertical-mode))
   :config
   (progn
-    (setq ido-save-directory-list-file my-ido-tmp-file)
+    (setq ido-save-directory-list-file (concat my-tmp-local-dir "ido.last"))
     (setq ido-enable-flex-matching t)
     (setq ido-use-filename-at-point 'guess)
     (setq ido-show-dot-for-dired t)))

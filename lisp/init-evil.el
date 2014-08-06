@@ -1,3 +1,7 @@
+;; TODO: consider using req-package
+;; Evil requires it, otherwise regular Emacs undo is used
+(require 'init-undo-tree)
+
 (use-package evil
   :ensure evil
   :init

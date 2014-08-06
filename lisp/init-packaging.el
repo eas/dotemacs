@@ -2,24 +2,10 @@
 
 ;; Packages I always want
 (defvar my-package-list
-  '(bookmark+
-    dired+
-    dsvn
-    zenburn-theme
-    undo-tree
-    use-package
-    god-mode
-    helm
+  '(use-package
     fuzzy-match
     fuzzy
-    el-swank-fuzzy
-    ace-jump-mode
-    switch-window
-    popwin
-    ssh
-    magit
-    eldoc
-    diminish)
+    el-swank-fuzzy)
   "Packages from ELPA I always want to install.")
 
 (eval-after-load 'package

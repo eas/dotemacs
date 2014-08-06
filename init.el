@@ -2,15 +2,9 @@
 ;; https://github.com/bradleywright/emacs-d/blob/master/init.el
 
 
+(add-to-list 'load-path (concat user-emacs-directory "lisp"))
 
-;; Add .emacs.d to 'load-path
-(defconst dotfiles-dir
-  (file-name-directory
-   (or (buffer-file-name) load-file-name))
-  "Base path for customised Emacs configuration")
 
-(add-to-list 'load-path dotfiles-dir)
-(add-to-list 'load-path (concat dotfiles-dir "lisp"))
 
 ;; start a server, unless one is already running
 (when (require 'server nil t)
@@ -18,9 +12,19 @@
     (server-start)))
 
 (require 'init-utils)
-(require 'init-paths)
+;; Configure all packages to store their data in that dir instead of `.emacs.d'
+(make-directory (setq my-tmp-local-dir (my-join-dirs user-emacs-directory ".tmp")) t)
+
+;; TODO: how to name this `init-*' file?
+
+;; TODO: create file
+(setq custom-file "~/.emacs-custom.el")
+(load custom-file)
+
+(setq recentf-exclude `(my-join-dirs dotfiles-dir "elpa"))
+
+
 (require 'init-backups)
-(require 'init-editing)
 (require 'init-packaging)
 
 ;; It is used to asynchonously load and configure other packages
@@ -28,42 +32,51 @@
 
 (defconst my-init-files
   '(
+    ;; Might be used in `use-package', probably should be
+    ;; initialized first.
+    init-diminish
+
+    init-libs
+
+    init-colorscheme
+    init-editing
     init-evil
-    ;; init-icy
-    ;; init-auto-complete
+    init-undo-tree
     init-ace-jump
-    init-company
+
+    init-highlight-parens
     init-paredit
-    init-smartparens
+    ;; init-smartparens
+    init-fci
+    init-eldoc
+    ;; init-auto-complete
+    init-company
+    init-flycheck
+
+    init-ido
+    init-helm
+    ;; init-icy
+    init-dired
+    init-windows-managing
     init-uniquify
-    init-emacs-lisp
-    init-ediff
+
     init-eshell
     init-shell
-    init-ido
-    init-org
-    init-highlight-parens
-    init-colorscheme
-    init-winner-mode
-    init-dired
-    init-helm
-    init-fci
-    init-haskell
-    init-flycheck
+    init-ssh
     init-w3m
+
+    init-ediff
+    init-vc
+
+    init-emacs-lisp
+    init-org
+    init-haskell
     ;; init-ws-butler
+
     init-local)
   "List of init files to be loaded")
 
 (my-require-list my-init-files)
 
-;; (require 'evil-god)
-;; ;; These are easier in `god-mode'
-;; (global-set-key (kbd "C-x C-1") 'delete-other-windows)
-;; (global-set-key (kbd "C-x C-2") 'split-window-below)
-;; (global-set-key (kbd "C-x C-3") 'split-window-right)
-;; (global-set-key (kbd "C-x C-0") 'delete-window)
-
 ;; TODO:
-(setq ssh-directory-tracking-mode t)
 (put 'narrow-to-region 'disabled nil)
