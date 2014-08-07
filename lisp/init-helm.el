@@ -17,5 +17,6 @@
     "hh" 'helm-mini
     "hg" 'helm-do-grep
     "ho" 'helm-swoop
-    "hs" 'helm-swoop))
+    "hs" 'helm-swoop
+    "hy" 'helm-show-kill-ring))
 (provide 'init-helm)
