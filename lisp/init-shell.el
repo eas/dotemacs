@@ -25,5 +25,8 @@
   (kbd "C-n") 'comint-next-input
   )
 
+(evil-leader/set-key-for-mode 'shell-mode
+  "hr" 'helm-comint-input-ring)
+
 (setq comint-prompt-regexp "^\$ ")
 (provide 'init-shell)
