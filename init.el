@@ -55,6 +55,7 @@
 
     init-ido
     init-helm
+    init-projectile
     ;; init-icy
     init-dired
     init-windows-managing
