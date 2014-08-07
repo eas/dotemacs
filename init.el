@@ -72,11 +72,17 @@
     init-org
     init-haskell
     ;; init-ws-butler
-
-    init-local)
+)
   "List of init files to be loaded")
 
 (my-require-list my-init-files)
+
+(add-to-list 'load-path (my-join-dirs user-emacs-directory "lisp-local"))
+(let ((default-directory (my-join-dirs user-emacs-directory "site-lisp-local")))
+  (normal-top-level-add-to-load-path '("."))
+  (normal-top-level-add-subdirs-to-load-path))
+
+(require 'init-local)
 
 ;; TODO:
 (put 'narrow-to-region 'disabled nil)

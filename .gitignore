@@ -7,11 +7,11 @@ server
 image-dired
 .ido.last
 eshell
-init-local.el
+lisp-local
+site-lisp-local
 tramp
 ac-comphist.dat
 .emacs.desktop
-local
 .session
 .smex-items
 frame-restore-parameters
