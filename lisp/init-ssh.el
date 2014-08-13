@@ -1,6 +1,6 @@
 (use-package ssh
   :ensure
-  :config
+  :init
   (progn
-    (setq ssh-directory-tracking-mode t)))
+    (setq-default ssh-directory-tracking-mode t)))
 (provide 'init-ssh)
