@@ -21,11 +21,11 @@
            "B" 'ido-switch-buffer-other-window
            "x" 'smex
            "X" 'helm-M-x
-           "l" 'linum-mode
            "k" 'delete-window
-           "w" 'toggle-truncate-lines
+           "tl" 'linum-mode
+           "tw" 'toggle-truncate-lines
            "d" 'ido-dired
-           "t" 'speedbar-get-focus
+           "ts" 'speedbar-get-focus
            "j" 'bookmark-bmenu-list
            "c" 'evilnc-comment-or-uncomment-lines
            "o" 'other-window
@@ -42,7 +42,8 @@
           :ensure elscreen)
         (global-evil-tabs-mode t)
         (define-key evil-insert-state-map (kbd "C-x t") 'elscreen-toggle)
-        (define-key evil-normal-state-map (kbd "C-x t") 'elscreen-toggle)))
+        (define-key evil-normal-state-map (kbd "C-x t") 'elscreen-toggle)
+        (evil-leader/set-key "tt" 'elscreen-toggle)))
     (use-package evil-nerd-commenter
       :ensure evil-nerd-commenter)
         ;; enable by default
