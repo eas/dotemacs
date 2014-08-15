@@ -10,5 +10,7 @@
     :ensure)
   :config
   (dash-enable-font-lock))
+(use-package request
+  :ensure)
 
 (provide 'init-libs)
