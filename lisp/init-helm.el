@@ -1,3 +1,5 @@
+(require 'use-package)
+
 (use-package helm
   :ensure helm
   :init
@@ -10,6 +12,7 @@
       :ensure helm-swoop))
   :config
   (evil-leader/set-key
+    "X" 'helm-M-x
     "hl" 'helm-locate
     "he" 'helm-elscreen
     "hf" 'helm-find-files

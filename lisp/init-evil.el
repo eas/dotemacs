@@ -15,12 +15,6 @@
         (evil-leader/set-key-for-mode 'emacs-lisp-mode
            "e" 'eval-last-sexp)
         (evil-leader/set-key
-           "f" 'ido-find-file
-           "F" 'ido-find-file-other-window
-           "b" 'ido-switch-buffer
-           "B" 'ido-switch-buffer-other-window
-           "x" 'smex
-           "X" 'helm-M-x
            "k" 'delete-window
            "tl" 'linum-mode
            "tw" 'toggle-truncate-lines
@@ -31,7 +25,6 @@
            "o" 'other-window
            "O" 'switch-window
            "q" 'previous-multiframe-window
-           "g" 'ace-jump-mode
            "u" 'revert-buffer
            "z" 'suspend-frame)))
     (use-package evil-tabs

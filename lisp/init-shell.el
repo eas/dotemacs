@@ -28,5 +28,7 @@
 (evil-leader/set-key-for-mode 'shell-mode
   "hr" 'helm-comint-input-ring)
 
-(setq comint-prompt-regexp "^\$ ")
+(setq comint-prompt-regexp        "^\$ "
+      comint-completion-addsuffix nil
+      term-completion-addsuffix   nil)
 (provide 'init-shell)
