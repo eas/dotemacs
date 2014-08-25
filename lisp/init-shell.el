@@ -1,7 +1,8 @@
 (require 'comint)
-;; TODO:
+;; TODO: correct auto-loads
 (require 'helm)
 (require 'helm-buffers) ;; for helm-buffers-fuzzy-matching variable
+(require 'helm-misc)    ;; for helm-comint-input-ring-action
 
 ;; http://stackoverflow.com/questions/7987494/emacs-shell-mode-display-is-too-wide-after-splitting-window
 (defun my-comint-fix-window-size ()
