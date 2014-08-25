@@ -22,14 +22,14 @@
     (setq ido-show-dot-for-dired t)))
 
 (use-package smex
+      :commands (smex smex-major-mode-commands)
       :init
+      (evil-leader/set-key
+        "x" 'smex)
       :bind (("M-x" . smex)
              ("M-X" . smex-major-mode-commands))
       :config
-      (progn
-        (smex-initialize)
-        (evil-leader/set-key
-          "x" 'smex))
+      (smex-initialize)
       :ensure smex)
 
 ;; TODO: commands? Or move to ido's config section?
