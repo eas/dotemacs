@@ -20,12 +20,14 @@
 (add-hook 'shell-mode-hook 'my-shell-mode-hook)
 
 (evil-define-key 'insert shell-mode-map
-  (kbd "C-r") 'my-helm-command-from-bash
+  (kbd "C-r") 'helm-comint-input-ring
+  (kbd "C-R") 'my-helm-command-from-bash
   (kbd "C-p") 'comint-previous-input
   (kbd "C-n") 'comint-next-input)
 
 (evil-define-key 'normal shell-mode-map
-  (kbd "C-r") 'my-helm-command-from-bash
+  (kbd "C-r") 'helm-comint-input-ring
+  (kbd "C-R") 'my-helm-command-from-bash
   (kbd "C-p") 'comint-previous-input
   (kbd "C-n") 'comint-next-input)
 
@@ -70,7 +72,7 @@
   (helm-other-buffer 'my-helm-c-source-bash-history "*helm bash history*"))
 
 (evil-leader/set-key-for-mode 'shell-mode
-  "hR" 'helm-comint-input-ring
-  "hr" 'my-helm-command-from-bash)
+  "hr" 'helm-comint-input-ring
+  "hR" 'my-helm-command-from-bash)
 
 (provide 'init-shell)
