@@ -45,6 +45,7 @@
     init-ace-jump
 
     init-highlight-parens
+    init-color-identifiers
     init-paredit
     ;; init-smartparens
     init-fci
