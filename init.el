@@ -22,7 +22,10 @@
 (load custom-file)
 
 (setq recentf-exclude `(my-join-dirs dotfiles-dir "elpa"))
+(setq recentf-max-menu-items 50)
+(setq recentf-max-saved-items nil)
 
+(setq tramp-default-method "ssh")
 
 (require 'init-backups)
 (require 'init-packaging)
