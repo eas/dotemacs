@@ -53,6 +53,7 @@
     ;; init-auto-complete
     init-company
     init-flycheck
+    init-ggtags
 
     init-ido
     init-helm
