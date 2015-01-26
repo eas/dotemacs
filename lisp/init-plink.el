@@ -11,6 +11,8 @@
 
 (add-hook 'ssh-mode-hook 'my-fix-plink)
 
+(setq tramp-default-method "plink")
+
 
 ;; Cannot run it in hook
 (defun my-comint-simple-send (proc string)
