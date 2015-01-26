@@ -69,7 +69,7 @@
     init-eshell
     init-shell
     init-ssh
-    init-w3m
+    ;; init-w3m
 
     init-ediff
     init-vc
