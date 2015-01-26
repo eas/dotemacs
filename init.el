@@ -57,6 +57,7 @@
     ;; init-auto-complete
     init-company
     init-flycheck
+    init-gtags
     init-ggtags
 
     init-ido
