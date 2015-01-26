@@ -93,6 +93,4 @@
   (normal-top-level-add-subdirs-to-load-path))
 
 (require 'init-local)
-
-;; TODO:
 (put 'narrow-to-region 'disabled nil)
