@@ -49,10 +49,11 @@
       (goto-char (point-max))
       (loop for pos = (re-search-backward (funcall fun pattern) nil t)
             while pos
-            collect (replace-regexp-in-string
-                     "\\`:.+?;" ""
-                     (buffer-substring (line-beginning-position)
-                                       (line-end-position)))))))
+            collect (s-trim-right  ;; to get rid of ^M on Windows
+                     (replace-regexp-in-string
+                      "\\`:.+?;" ""
+                      (buffer-substring (line-beginning-position)
+                                        (line-end-position))))))))
 
 (defun my-helm-c-bash-history-action (candidate)
   (async-shell-command candidate))
