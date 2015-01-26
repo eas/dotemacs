@@ -13,27 +13,33 @@
       (progn
         (evil-leader/set-leader ",")
         (evil-leader/set-key-for-mode 'emacs-lisp-mode
-           "e" 'eval-last-sexp)
+          "e" 'eval-last-sexp)
+        (defun my-prev-window ()
+          (interactive)
+          (other-window -1))
         (evil-leader/set-key
-           "f" 'ido-find-file
-           "F" 'ido-find-file-other-window
-           "b" 'ido-switch-buffer
-           "B" 'ido-switch-buffer-other-window
-           "x" 'smex
-           "X" 'helm-M-x
-           "k" 'delete-window
-           "tl" 'linum-mode
-           "tw" 'toggle-truncate-lines
-           "d" 'ido-dired
-           "ts" 'speedbar-get-focus
-           "j" 'bookmark-bmenu-list
-           "c" 'evilnc-comment-or-uncomment-lines
-           "o" 'other-window
-           "O" 'switch-window
-           "q" 'previous-multiframe-window
-           "g" 'ace-jump-mode
-           "u" 'revert-buffer
-           "z" 'suspend-frame)))
+          "f" 'ido-find-file
+          "F" 'ido-find-file-other-window
+          "b" 'ido-switch-buffer
+          "B" 'ido-switch-buffer-other-window
+          "x" 'smex
+          "X" 'helm-M-x
+          "k" 'delete-window
+          "tl" 'linum-mode
+          "te" 'elscreen-toggle-display-tab
+          "tw" 'toggle-truncate-lines
+          "d" 'ido-dired
+          "ts" 'speedbar-get-focus
+          "j" 'bookmark-bmenu-list
+          "c" 'evilnc-comment-or-uncomment-lines
+          "o" 'other-window
+          "O" 'switch-window
+          ;; TODO: why did it stop working?
+          ;; "q" 'previous-multiframe-window
+          "q" 'my-prev-window
+          "g" 'ace-jump-mode
+          "u" 'revert-buffer
+          "z" 'suspend-frame)))
     (use-package evil-tabs
       :ensure evil-tabs
       :init
@@ -45,7 +51,7 @@
         (evil-leader/set-key "tt" 'elscreen-toggle)))
     (use-package evil-nerd-commenter
       :ensure evil-nerd-commenter)
-        ;; enable by default
+    ;; enable by default
     (use-package evil-jumper
       :ensure evil-jumper
       :init (require 'evil-jumper))
