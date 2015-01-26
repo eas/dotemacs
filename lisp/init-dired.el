@@ -16,6 +16,7 @@
       (diredp-next-line 1)
       (my-dired-preview))
 
-    (setq dired-dwim-target t)))
+    (setq dired-dwim-target t
+          dired-listing-switches "-la --group-directories-first")))
 
 (provide 'init-dired)
