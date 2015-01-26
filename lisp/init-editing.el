@@ -49,10 +49,17 @@
 (global-hl-line-mode t)                 ; highlight current line
 (menu-bar-mode -1)                      ; no menu (questionable)
 
+
+(defun my-font-candidate (&rest fonts)
+  "Return the first available font."
+  (--first (find-font (font-spec :name it)) fonts))
+
 (when window-system
   (tool-bar-mode -1)                    ; definetely don't want to see toolbar
   (scroll-bar-mode -1)                  ; probably not needed
-  (set-face-attribute 'default nil :height 100 :family "Lucida Console"))
+  ;; TODO:
+  (set-face-attribute 'default nil :height 110 :family (my-font-candidate "DejaVu Sans Mono"
+                                                                          "Lucida Console")))
 
 
 ;; TODO: Maybe it should be moved to separate c++/perl init files
