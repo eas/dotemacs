@@ -46,6 +46,7 @@
     init-evil
     init-undo-tree
     init-ace-jump
+    init-ibuffer
 
     init-highlight-parens
     init-color-identifiers
