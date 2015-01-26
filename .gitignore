@@ -16,3 +16,6 @@ ac-comphist.dat
 .smex-items
 frame-restore-parameters
 history
+smex-items
+projectile-bookmarks*
+projectile.cache
