@@ -15,7 +15,7 @@
     "hf" 'helm-find-files
     "hF" 'helm-complete-file-name-at-point
     "hh" 'helm-mini
-    "hi" 'helm-imenu
+    "hi" 'helm-semantic-or-imenu
     "hg" 'helm-do-grep
     "ho" 'helm-swoop
     "hs" 'helm-swoop
