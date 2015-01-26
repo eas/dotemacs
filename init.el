@@ -53,6 +53,7 @@
     init-paredit
     ;; init-smartparens
     init-fci
+    init-indent-guide
     init-eldoc
     ;; init-auto-complete
     init-company
