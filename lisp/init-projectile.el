@@ -1,11 +1,12 @@
 (use-package projectile
-  :ensure projectile
+  :ensure
   :idle
   :config
   (progn
-   (projectile-global-mode)
    (setq projectile-enable-caching t)
    (evil-leader/set-key
-     "hp" 'helm-projectile)))
+     "hp" 'helm-projectile)
+   (use-package helm-projectile
+     :ensure)))
 
 (provide 'init-projectile)
