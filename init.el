@@ -73,6 +73,7 @@
 
     init-ediff
     init-vc
+    init-gdb
 
     init-emacs-lisp
     init-org
