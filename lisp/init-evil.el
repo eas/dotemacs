@@ -58,8 +58,10 @@
     (evil-mode 1))
   :config
   (progn
-    (define-key evil-ex-map "e " 'find-file)
-    (define-key evil-ex-map "b " 'switch-to-buffer)
+     ;; Make insert-state more like emacs
+    (setcdr evil-insert-state-map nil)
+    (define-key evil-insert-state-map [escape] 'evil-normal-state)
+
     ;; I prefere C-j to Esc as it's on home row with Ctrl remapped to CapsLock
     (define-key evil-normal-state-map (kbd "C-j") 'evil-normal-state)
     (define-key evil-insert-state-map (kbd "C-j") 'evil-normal-state)

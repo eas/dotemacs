@@ -58,11 +58,14 @@
   (tool-bar-mode -1)                    ; definetely don't want to see toolbar
   (scroll-bar-mode -1)                  ; probably not needed
   ;; TODO:
-  (set-face-attribute 'default nil :height 110 :family (my-font-candidate "DejaVu Sans Mono"
+  (set-face-attribute 'default nil :height 100 :family (my-font-candidate "DejaVu Sans Mono"
                                                                           "Lucida Console")))
 
 
-;; TODO: Maybe it should be moved to separate c++/perl init files
-(modify-syntax-entry ?_ "w" c++-mode-syntax-table)
+;; TODO: Need it in every mode's hook
+(modify-syntax-entry ?_ "w")
+
+;; Oterwise I cannot do smth like ciW
+(setq save-interprogram-paste-before-kill t)
 
 (provide 'init-editing)

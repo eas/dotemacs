@@ -1,0 +1,6 @@
+# -*- mode: snippet; require-final-newline: nil -*-
+# name: ics_set_ws
+# key: iset
+# binding: direct-keybinding
+# --
+ics set ws -archive -deploy -nocd /nfs/ins/proj/icl/archive/deploy_$1/$2/$3 && ics set config -ws $2 GCC=4.9.1 && ics set context ws host && which icc

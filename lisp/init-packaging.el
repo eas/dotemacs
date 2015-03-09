@@ -13,6 +13,7 @@
      (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
      (when (< emacs-major-version 24)
        (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
+     (ignore-errors (require 'local-packaging))
      (package-initialize)
 
      (defun essential-packages-installed-p (to-install)

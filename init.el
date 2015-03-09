@@ -19,7 +19,7 @@
 
 ;; TODO: create file
 (setq custom-file "~/.emacs-custom.el")
-(load custom-file)
+;;(load custom-file)
 
 (setq recentf-exclude `(my-join-dirs dotfiles-dir "elpa"))
 (setq recentf-max-menu-items 50)
@@ -60,6 +60,7 @@
     init-flycheck
     init-gtags
     init-ggtags
+    init-yasnippet
 
     init-ido
     init-helm
