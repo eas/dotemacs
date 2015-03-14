@@ -3,6 +3,10 @@
 (require 'helm)
 (require 'helm-buffers) ;; for helm-buffers-fuzzy-matching variable
 (require 'helm-misc)    ;; for helm-comint-input-ring-action
+(require 'shell)
+(require 'cl-lib)
+(require 's)
+(require 'evil)
 
 ;; http://stackoverflow.com/questions/7987494/emacs-shell-mode-display-is-too-wide-after-splitting-window
 (defun my-comint-fix-window-size ()
@@ -47,13 +51,13 @@
     (with-current-buffer (find-file-noselect "~/.bash_history" t t)
       (auto-revert-mode -1)
       (goto-char (point-max))
-      (loop for pos = (re-search-backward (funcall fun pattern) nil t)
-            while pos
-            collect (s-trim-right  ;; to get rid of ^M on Windows
-                     (replace-regexp-in-string
-                      "\\`:.+?;" ""
-                      (buffer-substring (line-beginning-position)
-                                        (line-end-position))))))))
+      (cl-loop for pos = (re-search-backward (funcall fun pattern) nil t)
+               while pos
+               collect (s-trim-right  ;; to get rid of ^M on Windows
+                        (replace-regexp-in-string
+                         "\\`:.+?;" ""
+                         (buffer-substring (line-beginning-position)
+                                           (line-end-position))))))))
 
 (defun my-helm-c-bash-history-action (candidate)
   (async-shell-command candidate))
