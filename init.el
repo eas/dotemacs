@@ -210,7 +210,10 @@
 (use-package embark
   :general
   (my-leader
-    "." 'embark-act))
+    "." 'embark-act)
+  (general-define-key
+   :key-map minibuffer-mode-map
+   "C-c ." 'embark-act))
 (use-package embark-consult)
 
 (use-package helpful
