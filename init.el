@@ -500,9 +500,64 @@
 ;;(use-package eglot-semtok) ;; font-lock per semantic tokens (experimental)
 
 ;; LLVM development setup
+(defun my-list-matching-lines (regexp &optional buffer)
+  "Return a list of lines matching REGEXP in BUFFER (or the current buffer if not given)."
+  (with-current-buffer (or buffer (current-buffer))
+    (let ((matching-lines nil)
+          (case-fold-search t) ; Set to nil for case-sensitive search
+          (inhibit-read-only t)) ; Temporarily make buffer writable for search operations
+      (save-excursion
+        (goto-char (point-min))
+        (while (re-search-forward (concat "^.*" regexp ".*$") nil t)
+          ;; Add the line to the list
+          (push (match-string 0) matching-lines)
+          ;; Move past the current match to search for the next one
+          (goto-char (match-end 0))))
+      ;; Reverse the list so lines are in their original buffer order
+      (nreverse matching-lines))))
+
 (defmacro my-in-project-root (body)
   `(let ((default-directory (project-root (project-current t))))
      ,body))
+
+(defun my-get-cur-llvm-func ()
+  (save-excursion
+    (re-search-backward "^define")
+    (buffer-substring (search-forward "@") (- (search-forward "(") 1))))
+
+(defun my-presorted-completion-table (completions)
+  (lambda (string pred action)
+    (if (eq action 'metadata)
+        `(metadata (display-sort-function . ,#'identity))
+      (complete-with-action action completions string pred))))
+
+(defun my-command-on-func ()
+  (interactive)
+  (let* ((func (my-get-cur-llvm-func))
+         (commands (append
+                    '("opt -disable-output -p loop-vectorize -vplan-print-after-all"
+                      "opt -disable-output -p loop-vectorize -mtriple=riscv64 -mattr=+v -vplan-print-after-all")
+                    (mapcar (lambda (line)
+                              (substring
+                               line
+                               (string-search "opt " line)
+                               (string-search "|" line)))
+                            (my-list-matching-lines "RUN:"))))
+         (command
+          (concat "build/bin/"
+                  (replace-regexp-in-string
+                   "<? *%s " ""
+                    (completing-read "Command: " (my-presorted-completion-table commands)))))
+         (buf "*llvm*"))
+    (my-in-project-root
+     (shell-command
+      (format "build/bin/llvm-extract --func %s %s | %s "
+              func
+              buffer-file-name
+              command)
+      buf))
+    (pop-to-buffer buf)
+    (llvm-mode)))
 
 (my-leader
     "l" '(:ignore t :wk "llvm")
@@ -541,7 +596,7 @@
              (my-in-project-root (compile "ionice -c3 nice ninja -C build VectorizeTests")))
            :wk "build VectorizeTests unittests")
     "le" '((lambda (func)
-             (interactive "sFunction: ")
+             (interactive (list (read-string "Function: " (my-get-cur-llvm-func))))
              (let ((buf (generate-new-buffer (concat func ".ll"))))
                (my-in-project-root
                 (shell-command
@@ -549,4 +604,5 @@
                  buf))
                (switch-to-buffer buf)
                (llvm-mode)))
-           :wk "extract function"))
+           :wk "extract function")
+    "lc" '(my-command-on-func :wk "command on current func"))
