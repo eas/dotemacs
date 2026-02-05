@@ -499,40 +499,53 @@
 ;;(use-package eglot-semtok) ;; font-lock per semantic tokens (experimental)
 
 ;; LLVM development setup
-(defun my-project-expand-command (str)
-  (string-replace "<file>" buffer-file-name
-                  (string-replace "<project>" (expand-file-name (project-root (project-current)))
-                                  str)))
+(defmacro my-in-project-root (body)
+  `(let ((default-directory (project-root (project-current t))))
+     ,body))
 
 (my-leader
     "l" '(:ignore t :wk "llvm")
     "ll" '((lambda ()
              (interactive)
-             (compile (my-project-expand-command "<project>/build/bin/llvm-lit -v <file>")))
+             (my-in-project-root (compile (concat "build/bin/llvm-lit -v " buffer-file-name))))
            :wk "run llvm-lit")
     "lL" '((lambda ()
              (interactive)
-             (compile (my-project-expand-command "<project>/build/bin/llvm-lit -a <file>")))
+             (my-in-project-root (compile (concat "build/bin/llvm-lit -a " buffer-file-name))))
            :wk "run llvm-lit -a")
     "lv" '((lambda ()
              (interactive)
-             (compile (my-project-expand-command "<project>/build/bin/opt --disable-output -p verify <file>")))
+             (my-in-project-root (compile (concat "build/bin/opt --disable-output -p verify " buffer-file-name))))
            :wk "verify ir")
     "la" '((lambda ()
              (interactive)
-             (shell-command
-              (my-project-expand-command
-               "export PATH=\"<project>/build/bin:$PATH\" ; <project>/llvm/utils/update_analyze_test_checks.py <file>"))
+             (my-in-project-root
+              (shell-command
+               (concat "llvm/utils/update_analyze_test_checks.py --opt-binary=build/bin/opt " buffer-file-name)))
              (revert-buffer :NOCONFIRM t))
            :wk "update analyze test")
     "lt" '((lambda ()
              (interactive)
-             (shell-command
-              (my-project-expand-command
-               "export PATH=\"<project>/build/bin:$PATH\" ; <project>/llvm/utils/update_test_checks.py <file>"))
+             (my-in-project-root
+              (shell-command
+               (concat "llvm/utils/update_test_checks.py --opt-binary=build/bin/opt " buffer-file-name)))
              (revert-buffer :NOCONFIRM t))
            :wk "update ir test")
     "lo" '((lambda ()
              (interactive)
-             (compile (my-project-expand-command "ionice -c3 nice ninja -C <project>/build opt")))
-           :wk "build opt"))
+             (my-in-project-root (compile "ionice -c3 nice ninja -C build opt")))
+           :wk "build opt")
+    "lu" '((lambda ()
+             (interactive)
+             (my-in-project-root (compile "ionice -c3 nice ninja -C build VectorizeTests")))
+           :wk "build VectorizeTests unittests")
+    "le" '((lambda (func)
+             (interactive "sFunction: ")
+             (let ((buf (generate-new-buffer (concat func ".ll"))))
+               (my-in-project-root
+                (shell-command
+                 (format "build/bin/llvm-extract --func %s -S %s" func buffer-file-name)
+                 buf))
+               (switch-to-buffer buf)
+               (llvm-mode)))
+           :wk "extract function"))
