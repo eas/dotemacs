@@ -60,6 +60,7 @@
   (general-auto-unbind-keys)
   (general-create-definer my-leader
     :states '(motion insert emacs)
+    :keymaps 'override
     :prefix "SPC"
     :global-prefix "C-c")
   (general-define-key
@@ -81,6 +82,7 @@
     "B" '(:ignore t :wk "bookmarks")
     "Bs" 'bookmark-set
     "Bj" 'bookmark-jump
+    "BB" 'bookmark-bmenu-list
 
     "v" '((lambda ()
             (interactive)
@@ -199,6 +201,7 @@
   :general
   (my-leader
     "b" 'consult-buffer
+    "s" '(:ignore t :wk "consult")
     "sr" 'consult-ripgrep
     "sg" 'consult-git-grep
     "sf" 'consult-find
@@ -487,6 +490,9 @@
 
 (use-package markdown-ts-mode)
 
+;; TODO: Integrate with evil
+(use-package dired-preview)
+
 (setq compile-command "ionice -c3 nice ninja -C build")
 (put 'narrow-to-region 'disabled nil)
 
@@ -531,12 +537,18 @@
         `(metadata (display-sort-function . ,#'identity))
       (complete-with-action action completions string pred))))
 
+(setq my-opt-commands
+      '("opt -S -p loop-vectorize -vplan-print-after-all"
+        "opt -S -p loop-vectorize -force-vector-width=4 -vplan-print-after-all"
+        "opt -S -p loop-vectorize -mtriple=riscv64 -mattr=+v -vplan-print-after-all"
+        "opt -S -p loop-vectorize -mtriple=x86_64 -mattr=+avx512f -vplan-print-after-all"
+        "opt -S -p loop-vectorize -mtriple=riscv64 -mattr=+v -vplan-print-after=replaceSymbolicStrides -vplan-print-before=replaceSymbolicStrides"))
+
 (defun my-command-on-func ()
   (interactive)
   (let* ((func (my-get-cur-llvm-func))
          (commands (append
-                    '("opt -disable-output -p loop-vectorize -vplan-print-after-all"
-                      "opt -disable-output -p loop-vectorize -mtriple=riscv64 -mattr=+v -vplan-print-after-all")
+                    my-opt-commands
                     (mapcar (lambda (line)
                               (substring
                                line
@@ -546,7 +558,7 @@
          (command
           (concat "build/bin/"
                   (replace-regexp-in-string
-                   "<? *%s " ""
+                   "<? *%s " " "
                     (completing-read "Command: " (my-presorted-completion-table commands)))))
          (buf "*llvm*"))
     (my-in-project-root
@@ -591,10 +603,14 @@
              (interactive)
              (my-in-project-root (compile "ionice -c3 nice ninja -C build opt")))
            :wk "build opt")
-    "lu" '((lambda ()
+    "lU" '((lambda ()
              (interactive)
              (my-in-project-root (compile "ionice -c3 nice ninja -C build VectorizeTests")))
            :wk "build VectorizeTests unittests")
+    "lu" '((lambda ()
+             (interactive)
+             (my-in-project-root (compile "LIT_FILTER=LoopVectorize ionice -c3 nice ninja -C build check-llvm")))
+           :wk "LoopVectorize check-llvm")
     "le" '((lambda (func)
              (interactive (list (read-string "Function: " (my-get-cur-llvm-func))))
              (let ((buf (generate-new-buffer (concat func ".ll"))))
