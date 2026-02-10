@@ -544,32 +544,34 @@
         "opt -S -p loop-vectorize -mtriple=x86_64 -mattr=+avx512f -vplan-print-after-all"
         "opt -S -p loop-vectorize -mtriple=riscv64 -mattr=+v -vplan-print-after=replaceSymbolicStrides -vplan-print-before=replaceSymbolicStrides"))
 
-(defun my-command-on-func ()
-  (interactive)
-  (let* ((func (my-get-cur-llvm-func))
-         (commands (append
-                    my-opt-commands
-                    (mapcar (lambda (line)
-                              (substring
-                               line
-                               (string-search "opt " line)
-                               (string-search "|" line)))
-                            (my-list-matching-lines "RUN:"))))
-         (command
-          (concat "build/bin/"
-                  (replace-regexp-in-string
-                   "<? *%s " " "
-                    (completing-read "Command: " (my-presorted-completion-table commands)))))
-         (buf "*llvm*"))
-    (my-in-project-root
-     (shell-command
-      (format "build/bin/llvm-extract --func %s %s | %s "
-              func
-              buffer-file-name
-              command)
-      buf))
-    (pop-to-buffer buf)
-    (llvm-mode)))
+(defun my-command-on-func (file func command tgt-buf)
+  (interactive (let* ((func (my-get-cur-llvm-func))
+                      (commands (append
+                                 my-opt-commands
+                                 (mapcar (lambda (line)
+                                           (substring
+                                            line
+                                            (string-search "opt " line)
+                                            (string-search "|" line)))
+                                         (my-list-matching-lines "RUN:"))))
+                      (command
+                       (concat "build/bin/"
+                               (replace-regexp-in-string
+                                "<? *%s " " "
+                                (completing-read "Command: " (my-presorted-completion-table commands))))))
+                 (list buffer-file-name func command "*llvm*")))
+  (my-in-project-root
+   (shell-command
+    (format "build/bin/llvm-extract --func %s %s | %s " func file command)
+    tgt-buf))
+  (pop-to-buffer tgt-buf)
+  (llvm-mode)
+  (setq-local revert-buffer-function
+              (lambda (&optional ignore-auto noconfirm preserve-modes)
+                (interactive)
+                (message "My custom revert")
+                (with-current-buffer tgt-buf (erase-buffer))
+                (my-command-on-func file func command tgt-buf))))
 
 (my-leader
     "l" '(:ignore t :wk "llvm")
