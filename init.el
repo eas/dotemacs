@@ -522,6 +522,26 @@
       ;; Reverse the list so lines are in their original buffer order
       (nreverse matching-lines))))
 
+(defun my-get-RUN-lines (&optional buffer)
+  "Return a list of lines matching REGEXP in BUFFER (or the current buffer if not given)."
+  (with-current-buffer (or buffer (current-buffer))
+    (let ((matching-lines nil)
+          (case-fold-search t) ; Set to nil for case-sensitive search
+          (inhibit-read-only t) ; Temporarily make buffer writable for search operations
+          (append-last nil))
+      (save-excursion
+        (goto-char (point-min))
+        (while (re-search-forward (concat "^.*RUN:\\S*\\(.*[^\\\\]\\)\\(\\\\?\\)$") nil t)
+          ;; Add the line to the list
+          (if append-last
+              (setcar matching-lines (concat (car matching-lines) " " (match-string 1)))
+            (push (match-string 1) matching-lines))
+          (setq append-last (equal (match-string 2) "\\"))
+          ;; Move past the current match to search for the next one
+          (goto-char (match-end 0))))
+      ;; Reverse the list so lines are in their original buffer order
+      (nreverse matching-lines))))
+
 (defmacro my-in-project-root (body)
   `(let ((default-directory (project-root (project-current t))))
      ,body))
@@ -553,7 +573,7 @@
                                             line
                                             (string-search "opt " line)
                                             (string-search "|" line)))
-                                         (my-list-matching-lines "RUN:"))))
+                                         (my-get-RUN-lines))))
                       (command
                        (concat "build/bin/"
                                (replace-regexp-in-string
