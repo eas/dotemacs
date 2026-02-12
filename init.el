@@ -627,7 +627,7 @@
            :wk "build opt")
     "lU" '((lambda ()
              (interactive)
-             (my-in-project-root (compile "ionice -c3 nice ninja -C build VectorizeTests")))
+             (my-in-project-root (compile "ionice -c3 nice ninja -C build VectorizeTests && build/unittests/Transforms/Vectorize/VectorizeTests")))
            :wk "build VectorizeTests unittests")
     "lu" '((lambda ()
              (interactive)
