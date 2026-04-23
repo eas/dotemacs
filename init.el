@@ -717,3 +717,31 @@
     "ld" '(my-compare :wk "compare two commands on current func")
     "lD" '(my-compare-projects :wk "compare two projects on current func"))
 
+(defun my-get-lines-between-patterns (start-regexp end-regexp)
+  "Get the text between START-REGEXP and END-REGEXP as a string."
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward start-regexp nil t)
+      (let ((start-pos (point))) ; Capture position after the start match
+        (when (re-search-forward end-regexp nil t)
+          (let ((end-pos (match-beginning 0))) ; Capture position before the end match
+            (buffer-substring-no-properties start-pos end-pos)))))))
+
+(defun my-fails-to-dired ()
+  (interactive)
+  (let* ((fails-str (string-trim (my-get-lines-between-patterns "Failed Tests (.*):" "^$")))
+         (fails-lines (string-split fails-str "\n"))
+         (fails (mapcar (lambda (line)
+                          (string-replace "LLVM :: " "" (string-trim line)))
+                        fails-lines))
+         (buf (read-string "Buffer: " "*Fails*"))
+         (default-directory (concat default-directory "/llvm/test")))
+    (dired (cons buf fails))))
+
+(defun my-dired-update-checks ()
+  (interactive)
+  (let* ((project-dir (project-root (project-current)))
+         (cmd (format "python3 %s/llvm/utils/update_any_test_checks.py --path %s/build/bin"
+                       project-dir project-dir)))
+    (dired-do-shell-command cmd nil (dired-get-marked-files))))
+
