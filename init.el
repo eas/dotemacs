@@ -402,9 +402,7 @@
                                 "\n" t))))))
   (my-leader
     'comint-mode-map
-    "hr" 'my-search-comint-history
     "sh" 'my-search-comint-history
-    "hR" 'my-search-bash-history
     "sH" 'my-search-bash-history))
 
 (defun my-comint-fix-window-size ()
