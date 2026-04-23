@@ -572,25 +572,37 @@
         "opt -S -p loop-vectorize -mtriple=x86_64 -mattr=+avx512f -vplan-print-after-all"
         "opt -S -p loop-vectorize -mtriple=riscv64 -mattr=+v -vplan-print-after=replaceSymbolicStrides -vplan-print-before=replaceSymbolicStrides"))
 
-(defun my-command-on-func (file func command tgt-buf)
+(defvar my-read-command-history nil)
+(defun my-read-command ()
+  (let ((commands (append
+                   my-opt-commands
+                   (mapcar (lambda (line)
+                             (substring
+                              line
+                              (string-search "opt " line)
+                              (string-search "|" line)))
+                           (my-get-RUN-lines)))))
+    (concat "build/bin/"
+            (replace-regexp-in-string
+             "<? *%s " " "
+             (completing-read "Command: " (my-presorted-completion-table commands) nil nil nil 'my-read-command-history)))))
+
+(defun my-command-on-func (file func command tgt-buf &optional project)
   (interactive (let* ((func (my-get-cur-llvm-func))
-                      (commands (append
-                                 my-opt-commands
-                                 (mapcar (lambda (line)
-                                           (substring
-                                            line
-                                            (string-search "opt " line)
-                                            (string-search "|" line)))
-                                         (my-get-RUN-lines))))
-                      (command
-                       (concat "build/bin/"
-                               (replace-regexp-in-string
-                                "<? *%s " " "
-                                (completing-read "Command: " (my-presorted-completion-table commands))))))
+                      (command (my-read-command)))
                  (list buffer-file-name func command "*llvm*")))
-  (my-in-project-root
+  (let ((default-directory (or project (project-root (project-current t)))))
    (shell-command
-    (format "build/bin/llvm-extract --func %s %s | %s " func file command)
+    ;; Pass through opt first to apply -mtriple/-mattr.
+    ;; TODO: Somehow pass `--rglob '.*'' when applicable...
+    (format "build/bin/opt %s %s %s | build/bin/llvm-extract --func %s | %s "
+            (if (string-match "-mtriple=[^ ]*" command)
+                (match-string 0 command) "")
+            (if (string-match "-mattr=[^ ]*" command)
+                (match-string 0 command) "")
+            file
+            func
+            command)
     tgt-buf))
   (pop-to-buffer tgt-buf)
   (llvm-mode)
@@ -600,6 +612,51 @@
                 (message "My custom revert")
                 (with-current-buffer tgt-buf (erase-buffer))
                 (my-command-on-func file func command tgt-buf))))
+
+(defun my-command-on-file (file command tgt-buf &optional project)
+  (interactive (list buffer-file-name (my-read-command) "*llvm*"))
+  (let ((default-directory (or project (project-root (project-current t)))))
+   (shell-command (concat command " " file) tgt-buf))
+  (pop-to-buffer tgt-buf)
+  (llvm-mode)
+  (setq-local revert-buffer-function
+              (lambda (&optional ignore-auto noconfirm preserve-modes)
+                (interactive)
+                (message "My custom revert")
+                (with-current-buffer tgt-buf (erase-buffer))
+                (my-command-on-file file command tgt-buf))))
+
+(defvar my-compare-opts-history nil)
+(defun my-compare (file func command-common opts-left opts-right tgt-buf-left tgt-buf-right)
+  (interactive (let* ((func (my-get-cur-llvm-func))
+                      (command-common (my-read-command))
+                      (opts-left (read-string "Extra opts left: " nil 'my-compare-opts-history))
+                      (opts-right (read-string (concat "Extra opts right (left was <" opts-left ">) " ": ") opts-left 'my-compare-opts-history)))
+                 (list buffer-file-name func command-common opts-left opts-right (concat "*llvm|" opts-left "*") (concat "*llvm|" opts-right "*"))))
+  (my-command-on-func file func (concat command-common " " opts-left) tgt-buf-left)
+  (my-command-on-func file func (concat command-common " " opts-right) tgt-buf-right)
+  (ediff-buffers tgt-buf-left tgt-buf-right))
+
+(defun my-compare-on-file (file command-common opts-left opts-right tgt-buf-left tgt-buf-right)
+  (interactive (let* ((command-common (my-read-command))
+                      (opts-left (read-string "Extra opts left: " nil 'my-compare-opts-history))
+                      (opts-right (read-string (concat "Extra opts right (left was <" opts-left ">) " ": ") opts-left 'my-compare-opts-history)))
+                 (list buffer-file-name command-common opts-left opts-right (concat "*llvm|" opts-left "*") (concat "*llvm|" opts-right "*"))))
+  (my-command-on-file file (concat command-common " " opts-left) tgt-buf-left)
+  (my-command-on-file file (concat command-common " " opts-right) tgt-buf-right)
+  (ediff-buffers tgt-buf-left tgt-buf-right))
+
+(defun my-compare-projects (file func command project-left project-right tgt-buf-left tgt-buf-right)
+  (interactive (let* ((func (my-get-cur-llvm-func))
+                       (command (my-read-command))
+                       (project-left (project-prompt-project-dir))
+                       (project-right (project-prompt-project-dir)))
+                  (list buffer-file-name func command project-left project-right
+                        (concat "*llvm|" project-left "*")
+                        (concat "*llvm|" project-right "*"))))
+  (my-command-on-func file func command tgt-buf-left project-left)
+  (my-command-on-func file func command tgt-buf-right project-right)
+  (ediff-buffers tgt-buf-left tgt-buf-right))
 
 (my-leader
     "l" '(:ignore t :wk "llvm")
@@ -655,4 +712,8 @@
                (switch-to-buffer buf)
                (llvm-mode)))
            :wk "extract function")
-    "lc" '(my-command-on-func :wk "command on current func"))
+    "lc" '(my-command-on-func :wk "command on current func")
+    "lC" '(my-command-on-file :wk "command on file")
+    "ld" '(my-compare :wk "compare two commands on current func")
+    "lD" '(my-compare-projects :wk "compare two projects on current func"))
+
