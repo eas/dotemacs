@@ -28,6 +28,8 @@
 
 (setq ediff-split-window-function 'split-window-horizontally)
 
+(global-set-key [remap list-buffers] 'ibuffer)
+
 (require 'package)
 (add-to-list 'package-archives '("MELPA" . "http://melpa.org/packages/"))
 (package-initialize)
