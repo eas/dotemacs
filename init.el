@@ -219,7 +219,12 @@
     "." 'embark-act)
   (general-define-key
    :key-map minibuffer-mode-map
-   "C-c ." 'embark-act))
+   "C-c ." 'embark-act
+   "C-." 'embark-act)
+  (general-define-key
+   :key-map vertico-map
+   "C-c ." 'embark-act
+   "C-." 'embark-act))
 (use-package embark-consult)
 
 (use-package helpful
