@@ -73,6 +73,7 @@
     "t" '(:ignore t :wk "toggle")
     "tt" 'toggle-truncate-lines
     "tl" 'display-line-numbers-mode
+    "tj" 'jinx-mode
 
     "o" 'other-window
     "q" '((lambda () (interactive) (other-window -1))
