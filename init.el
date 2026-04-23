@@ -26,6 +26,8 @@
 (prefer-coding-system 'utf-8)
 (setq default-process-coding-system '(utf-8-unix . utf-8-unix))
 
+(setq ediff-split-window-function 'split-window-horizontally)
+
 (require 'package)
 (add-to-list 'package-archives '("MELPA" . "http://melpa.org/packages/"))
 (package-initialize)
