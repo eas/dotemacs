@@ -603,8 +603,10 @@
 
 (defun my-command-on-func (file func command tgt-buf &optional project)
   (interactive (let* ((func (my-get-cur-llvm-func))
-                      (command (my-read-command)))
-                 (list buffer-file-name func command "*llvm*")))
+                      (command (my-read-command))
+                      (project (when current-prefix-arg
+                                 (project-prompt-project-dir))))
+                 (list buffer-file-name func command "*llvm*" project)))
   (let ((default-directory (or project (project-root (project-current t)))))
    (shell-command
     ;; Pass through opt first to apply -mtriple/-mattr.
@@ -628,7 +630,11 @@
                 (my-command-on-func file func command tgt-buf))))
 
 (defun my-command-on-file (file command tgt-buf &optional project)
-  (interactive (list buffer-file-name (my-read-command) "*llvm*"))
+  (interactive (list buffer-file-name
+                     (my-read-command)
+                     "*llvm*"
+                     (when current-prefix-arg
+                       (project-prompt-project-dir))))
   (let ((default-directory (or project (project-root (project-current t)))))
    (shell-command (concat command " " file) tgt-buf))
   (pop-to-buffer tgt-buf)
