@@ -768,3 +768,8 @@
   (kill-new (concat "rr record -n " (project-root (project-current t))
                     (string-replace "build/" "build.debug/" (my-read-command))
                     " " buffer-file-name)))
+
+;; Load local/private configuration if it exists
+(let ((local-init (expand-file-name "local/init.el" user-emacs-directory)))
+  (when (file-exists-p local-init)
+    (load local-init)))
