@@ -30,6 +30,8 @@
 
 (global-set-key [remap list-buffers] 'ibuffer)
 
+(filesets-init)
+
 (require 'package)
 (add-to-list 'package-archives '("MELPA" . "http://melpa.org/packages/"))
 (package-initialize)
@@ -186,8 +188,7 @@
   (global-corfu-mode)
   (corfu-popupinfo-mode))
 
-(use-package jinx
-  :hook (emacs-startup . global-jinx-mode))
+(use-package jinx)
 
 (use-package treesit-auto
   :config
@@ -506,11 +507,15 @@
 
 ;; TODO:
 (use-package eglot-supplements
-  :vc (:url "https://codeberg.org/harald/eglot-supplements"))
+  :vc (:url "https://codeberg.org/harald/eglot-supplements")
+  :init
+  (require 'eglot-selran)
+  (require 'eglot-cthier)
+  (require 'eglot-marocc))
 
-(use-package eglot-selran) ;; selection ranges
-(use-package eglot-cthier) ;; call and type hierarchies
-(use-package eglot-marocc) ;; mark occurrences
+;; (use-package eglot-selran) ;; selection ranges
+;; (use-package eglot-cthier) ;; call and type hierarchies
+;; (use-package eglot-marocc) ;; mark occurrences
 ;;(use-package eglot-semtok) ;; font-lock per semantic tokens (experimental)
 
 ;; LLVM development setup
@@ -690,6 +695,10 @@
              (interactive)
              (my-in-project-root (compile "ionice -c3 nice ninja -C build opt")))
            :wk "build opt")
+    "lO" '((lambda ()
+             (interactive)
+             (my-in-project-root (compile "ionice -c3 nice ninja -C build.debug opt")))
+           :wk "build debug opt")
     "lU" '((lambda ()
              (interactive)
              (my-in-project-root (compile "ionice -c3 nice ninja -C build VectorizeTests && build/unittests/Transforms/Vectorize/VectorizeTests")))
@@ -745,3 +754,17 @@
                        project-dir project-dir)))
     (dired-do-shell-command cmd nil (dired-get-marked-files))))
 
+
+;; TODO:
+
+(custom-theme-set-faces
+ 'user
+ '(magit-section-highlight ((t (:inherit hl-line-face)))))
+
+; s/\(VPlanTransforms::[^(]*\)(/RUN_VPLAN_PASS_NO_VERIFY(\1, /
+
+(defun my-copy-rr-command ()
+  (interactive)
+  (kill-new (concat "rr record -n " (project-root (project-current t))
+                    (string-replace "build/" "build.debug/" (my-read-command))
+                    " " buffer-file-name)))
