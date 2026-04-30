@@ -60,6 +60,20 @@
   :init
   (which-key-mode t))
 
+(defun my-update-pipe-buffer ()
+  "Update *pipe* buffer with contents of ~/pipe."
+  (let ((buf (get-buffer-create "*pipe*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert-file-contents "~/pipe")
+        (llvm-mode)
+        (setq-local revert-buffer-function
+                    (lambda (&optional ignore-auto noconfirm preserve-modes)
+                      (interactive)
+                      (my-update-pipe-buffer)))))
+    buf))
+
 (use-package general
   :config
   (general-evil-setup)
@@ -93,17 +107,12 @@
 
     "v" '((lambda ()
             (interactive)
-            (pop-to-buffer "*pipe*")
-            (erase-buffer)
-            (insert-file-contents "~/pipe")
-            (llvm-mode)) :wk "view pipe")
+            (pop-to-buffer (my-update-pipe-buffer)))
+          :wk "view pipe")
 
     "V" '((lambda ()
             (interactive)
-            (switch-to-buffer "*pipe*")
-            (erase-buffer)
-            (insert-file-contents "~/pipe")
-            (llvm-mode))
+            (switch-to-buffer (my-update-pipe-buffer)))
           :wk "view pipe (same window)")
 
     "k"  'delete-window
