@@ -220,6 +220,12 @@
 
 (use-package treesit-auto
   :config
+  ;; Filter out languages with version mismatches before activating
+  (setq treesit-auto-recipe-list
+        (seq-filter
+         (lambda (recipe)
+           (eq t (treesit-language-available-p (treesit-auto-recipe-lang recipe) t)))
+         treesit-auto-recipe-list))
   (global-treesit-auto-mode)
   (setq treesit-auto-install 'prompt))
 
@@ -273,7 +279,9 @@
   ;; ("M-p h" 'cape-history)
   )
 
-(use-package llvm-ts-mode)
+;; Only load llvm-ts-mode if the grammar is compatible
+(when (eq t (treesit-language-available-p 'llvm t))
+  (use-package llvm-ts-mode))
 ;; https://github.com/benwilliamgraham/tree-sitter-llvm
 
 ;; https://www.patrickdelliott.com/emacs.d/
