@@ -156,6 +156,9 @@
   ;; (load-theme 'zenburn t)
   )
 
+;; Load whiteboard theme (built-in light theme)
+(load-theme 'whiteboard t)
+
 (use-package ws-butler
   :hook (prog-mode . ws-butler-mode))
 
