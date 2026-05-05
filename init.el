@@ -750,7 +750,7 @@
            :wk "build VectorizeTests unittests")
     "lu" '((lambda ()
              (interactive)
-             (my-in-project-root (compile "LIT_FILTER='LoopVectorize\|LoopAccessAnalysis' ionice -c3 nice ninja -C build check-llvm")))
+             (my-in-project-root (compile "ionice -c3 nice ninja -C build check-llvm-transforms-loopvectorize check-llvm-analysis-loopaccessanalysis")))
            :wk "LoopVectorize check-llvm")
     "lf" '((lambda ()
              (interactive)
