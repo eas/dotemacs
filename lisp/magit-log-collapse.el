@@ -10,12 +10,15 @@
 ;; - Preserves git graph structure (|, /, \, *) when collapsing to maintain branch visibility
 ;; - Stores collapsed state in overlay properties for toggling
 ;; - Linear sequences detected by checking if commits have exactly 1 parent
+;; - Overlays are reused across collapse/expand cycles for performance
+;; - Progress indicators shown for large logs (>50 commits)
 ;;
 ;; Main interactive commands:
 ;; - `my-magit-log-collapse-region' - Manually collapse selected commits
 ;; - `my-magit-log-collapse-all-linear' - Auto-collapse all linear sequences
 ;; - `my-magit-log-toggle-collapse-at-point' - Toggle collapsed/expanded state
 ;; - `my-magit-log-expand-all' - Expand all collapsed regions
+;; - `my-magit-log-toggle-collapse-all' - Smart toggle (added to magit transient menu)
 ;;
 ;; Implementation notes for AI agents:
 ;; - The overlay approach is non-destructive; buffer text is never modified
@@ -23,6 +26,7 @@
 ;; - Graph-only lines (no hash) are preserved to maintain branch structure
 ;; - `magit-section' API is used to identify commit boundaries
 ;; - Cursor movement works naturally because we use `display', not `invisible'
+;; - First collapse is slow (git calls), subsequent collapses are fast (overlay reuse)
 
 ;;; Code:
 
@@ -258,9 +262,11 @@ where we want to find ALL commits, not just selected ones."
           (forward-line 1))))
     (nreverse commits)))
 
-(defun my-magit-log-find-linear-sequences ()
+(defun my-magit-log-find-linear-sequences (&optional show-progress)
   "Find all linear sequences of commits in the current log buffer.
 Returns a list of sequences, where each sequence is a list of commit sections.
+
+If SHOW-PROGRESS is non-nil, displays a progress reporter during the scan.
 
 AI NOTE: This is the core auto-detection logic. Algorithm:
 1. Get all commit sections in the buffer
@@ -269,64 +275,132 @@ AI NOTE: This is the core auto-detection logic. Algorithm:
 4. When we hit a non-linear commit (merge/root), finish the current sequence
 5. Only keep sequences with 2+ commits (collapsing 1 commit is pointless)
 
-The result is a list of lists: [[seq1-commits], [seq2-commits], ...]"
+The result is a list of lists: [[seq1-commits], [seq2-commits], ...]
+
+OPTIMIZATION: When show-progress is t, displays progress for large logs."
   (let ((all-sections (my-magit-log-collect-commit-sections))
         sequences
-        current-sequence)
+        current-sequence
+        (progress-reporter nil)
+        (total (length (my-magit-log-collect-commit-sections)))
+        (current-idx 0))
+
+    ;; Create progress reporter if requested and we have enough commits
+    (when (and show-progress (> total 50))
+      (setq progress-reporter
+            (make-progress-reporter
+             (format "Scanning %d commits for linear sequences..." total)
+             0 total)))
+
     (dolist (section all-sections)
       (let ((hash (oref section value)))
         (if (my-magit-log-is-linear-commit hash)
             (push section current-sequence)
           (when (>= (length current-sequence) 2)
             (push (nreverse current-sequence) sequences))
-          (setq current-sequence nil))))
+          (setq current-sequence nil)))
+
+      ;; Update progress
+      (when progress-reporter
+        (setq current-idx (1+ current-idx))
+        (progress-reporter-update progress-reporter current-idx)))
+
     ;; Don't forget the last sequence if buffer ends with linear commits
     (when (>= (length current-sequence) 2)
       (push (nreverse current-sequence) sequences))
+
+    ;; Finish progress reporter
+    (when progress-reporter
+      (progress-reporter-done progress-reporter))
+
     (nreverse sequences)))
+
+(defun my-magit-log-count-collapsed-overlays ()
+  "Return count of existing collapsed overlays (both expanded and collapsed state)."
+  (let ((count 0))
+    (dolist (ov (overlays-in (point-min) (point-max)))
+      (when (overlay-get ov 'magit-collapsed)
+        (setq count (1+ count))))
+    count))
 
 (defun my-magit-log-collapse-all-linear ()
   "Auto-detect and collapse all linear commit sequences.
 
-AI NOTE: This is the 'auto-collapse' command. It finds all sequences of
-linear commits (those with exactly 1 parent each) and collapses them
-automatically. The implementation is essentially the same as manual collapse,
-but applied to each detected sequence.
+AI NOTE: OPTIMIZATION - This function now reuses existing overlays when possible.
+On first collapse, it does the expensive work (git calls, section detection).
+On subsequent collapses, it just flips the state of existing overlays.
 
-Important: This creates overlays for each sequence in a single pass. The
-overlays don't interfere with each other because they cover non-overlapping
-regions of the buffer."
+This makes collapse → expand → collapse cycles much faster for large logs."
   (interactive)
   (unless (derived-mode-p 'magit-log-mode)
     (user-error "Not in a magit-log buffer"))
-  (let ((sequences (my-magit-log-find-linear-sequences))
-        (total-collapsed 0))
-    (if (null sequences)
-        (message "No linear sequences found to collapse")
-      (dolist (seq sequences)
-        (let* ((count (length seq))
-               (first-section (car seq))
-               (last-section (car (last seq)))
-               (start-pos (oref first-section start))
-               (end-pos (oref last-section end))
-               (ov (make-overlay start-pos end-pos))
-               (summary-text (my-magit-log-build-collapsed-display first-section seq)))
-          (overlay-put ov 'display
-                       (propertize summary-text 'face 'magit-dimmed))
-          (overlay-put ov 'evaporate t)
-          (overlay-put ov 'magit-collapsed t)
-          (overlay-put ov 'magit-collapsed-state t)
-          (overlay-put ov 'magit-collapsed-count count)
-          (overlay-put ov 'magit-collapsed-display summary-text)
-          (overlay-put ov 'magit-collapsed-sections seq)
-          (let ((map (make-sparse-keymap)))
-            (define-key map (kbd "RET") #'my-magit-log-toggle-collapse-at-point)
-            (define-key map (kbd "TAB") #'my-magit-log-toggle-collapse-at-point)
-            (overlay-put ov 'keymap map))
-          (setq total-collapsed (1+ total-collapsed))))
-      (message "Collapsed %d linear sequence%s"
-               total-collapsed
-               (if (= total-collapsed 1) "" "s")))))
+
+  ;; Check if we already have overlays from a previous collapse
+  (let ((existing-overlay-count (my-magit-log-count-collapsed-overlays)))
+    (if (> existing-overlay-count 0)
+        ;; Fast path: reuse existing overlays, just flip them to collapsed state
+        (let ((total-collapsed 0))
+          (dolist (ov (overlays-in (point-min) (point-max)))
+            (when (overlay-get ov 'magit-collapsed)
+              (let ((summary-text (overlay-get ov 'magit-collapsed-display)))
+                (overlay-put ov 'display
+                             (propertize summary-text 'face 'magit-dimmed))
+                (overlay-put ov 'face nil)
+                (overlay-put ov 'magit-collapsed-state t)
+                (setq total-collapsed (1+ total-collapsed)))))
+          (message "Collapsed %d linear sequence%s (reused existing overlays)"
+                   total-collapsed
+                   (if (= total-collapsed 1) "" "s")))
+
+      ;; Slow path: first time, create overlays from scratch
+      (let ((sequences (my-magit-log-find-linear-sequences t)) ; t = show progress
+            (total-collapsed 0)
+            (progress-reporter nil))
+        (if (null sequences)
+            (message "No linear sequences found to collapse")
+
+          ;; Show progress for overlay creation if we have many sequences
+          (when (> (length sequences) 10)
+            (setq progress-reporter
+                  (make-progress-reporter
+                   (format "Creating overlays for %d sequences..." (length sequences))
+                   0 (length sequences))))
+
+          (let ((seq-idx 0))
+            (dolist (seq sequences)
+              (let* ((count (length seq))
+                     (first-section (car seq))
+                     (last-section (car (last seq)))
+                     (start-pos (oref first-section start))
+                     (end-pos (oref last-section end))
+                     (ov (make-overlay start-pos end-pos))
+                     (summary-text (my-magit-log-build-collapsed-display first-section seq)))
+                (overlay-put ov 'display
+                             (propertize summary-text 'face 'magit-dimmed))
+                (overlay-put ov 'evaporate t)
+                (overlay-put ov 'magit-collapsed t)
+                (overlay-put ov 'magit-collapsed-state t)
+                (overlay-put ov 'magit-collapsed-count count)
+                (overlay-put ov 'magit-collapsed-display summary-text)
+                (overlay-put ov 'magit-collapsed-sections seq)
+                (let ((map (make-sparse-keymap)))
+                  (define-key map (kbd "RET") #'my-magit-log-toggle-collapse-at-point)
+                  (define-key map (kbd "TAB") #'my-magit-log-toggle-collapse-at-point)
+                  (overlay-put ov 'keymap map))
+                (setq total-collapsed (1+ total-collapsed))
+
+                ;; Update progress
+                (when progress-reporter
+                  (setq seq-idx (1+ seq-idx))
+                  (progress-reporter-update progress-reporter seq-idx)))))
+
+          ;; Finish progress reporter
+          (when progress-reporter
+            (progress-reporter-done progress-reporter))
+
+          (message "Collapsed %d linear sequence%s (created new overlays)"
+                   total-collapsed
+                   (if (= total-collapsed 1) "" "s")))))))
 
 (defun my-magit-log-has-collapsed-regions-p ()
   "Return non-nil if any collapsed regions exist in the current buffer."
