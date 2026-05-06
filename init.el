@@ -136,20 +136,14 @@
 ;; Add custom lisp directory to load-path
 (add-to-list 'load-path (concat user-emacs-directory "lisp"))
 
-;; Magit log collapsing - fold/unfold commit ranges
+;; Magit log collapsing - fold/unfold linear commit ranges - useful to study
+;; merge structures.
+;; Press 'z' in magit-log refresh menu (L in log buffer)
+;; Shows current state: [collapsed] or [expanded]
+;; RET/TAB on collapsed lines toggles individual regions
 (use-package magit-log-collapse
   :ensure nil
-  :after magit
-  ;; Optional keybindings:
-  ;;   z c - Collapse selected region
-  ;;   z C - Collapse all linear sequences
-  ;;   z e - Expand all collapsed regions
-  ;;   RET/TAB on collapsed line - Toggle expand/collapse
-  ;; :bind (:map magit-log-mode-map
-  ;;             ("z c" . my-magit-log-collapse-region)
-  ;;             ("z C" . my-magit-log-collapse-all-linear)
-  ;;             ("z e" . my-magit-log-expand-all))
-  )
+  :after magit)
 
 (use-package zenburn-theme
   ;; :config

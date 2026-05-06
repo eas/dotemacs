@@ -328,5 +328,37 @@ regions of the buffer."
                total-collapsed
                (if (= total-collapsed 1) "" "s")))))
 
+(defun my-magit-log-has-collapsed-regions-p ()
+  "Return non-nil if any collapsed regions exist in the current buffer."
+  (let ((has-collapsed nil))
+    (dolist (ov (overlays-in (point-min) (point-max)))
+      (when (and (overlay-get ov 'magit-collapsed)
+                 (overlay-get ov 'magit-collapsed-state))
+        (setq has-collapsed t)))
+    has-collapsed))
+
+(require 'transient)
+
+(transient-define-suffix my-magit-log-toggle-collapse-all ()
+  "Toggle between collapsed and expanded states.
+If any regions are collapsed, expand all. Otherwise, collapse all linear sequences."
+  :description (lambda ()
+                 (if (my-magit-log-has-collapsed-regions-p)
+                     "toggle collapse [collapsed]"
+                   "toggle collapse [expanded]"))
+  :key "z"
+  :transient t
+  (interactive)
+  (unless (derived-mode-p 'magit-log-mode)
+    (user-error "Not in a magit-log buffer"))
+  (if (my-magit-log-has-collapsed-regions-p)
+      (my-magit-log-expand-all)
+    (my-magit-log-collapse-all-linear)))
+
+;; Add to magit-log-refresh transient menu in the "Toggle" section
+(with-eval-after-load 'magit-log
+  (transient-append-suffix 'magit-log-refresh '(2 2 -1)
+    '("z" my-magit-log-toggle-collapse-all)))
+
 (provide 'magit-log-collapse)
 ;;; magit-log-collapse.el ends here
