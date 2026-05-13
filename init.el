@@ -716,20 +716,28 @@
              (interactive)
              (my-in-project-root (compile (concat "build/bin/opt --disable-output -p verify " buffer-file-name))))
            :wk "verify ir")
-    "la" '((lambda ()
-             (interactive)
-             (my-in-project-root
-              (shell-command
-               (concat "llvm/utils/update_analyze_test_checks.py --opt-binary=build/bin/opt " buffer-file-name)))
-             (revert-buffer :NOCONFIRM t))
-           :wk "update analyze test")
     "lt" '((lambda ()
              (interactive)
              (my-in-project-root
               (shell-command
-               (concat "llvm/utils/update_test_checks.py --opt-binary=build/bin/opt " buffer-file-name)))
+               (concat "llvm/utils/update_any_test_checks.py --path=build/bin " buffer-file-name)))
              (revert-buffer :NOCONFIRM t))
-           :wk "update ir test")
+           :wk "update any test")
+    "lT" '(:ignore t :wk "update-test-specific")
+    "lTa" '((lambda ()
+              (interactive)
+              (my-in-project-root
+               (shell-command
+                (concat "llvm/utils/update_analyze_test_checks.py --opt-binary=build/bin/opt " buffer-file-name)))
+              (revert-buffer :NOCONFIRM t))
+            :wk "update analyze test")
+    "lTt" '((lambda ()
+              (interactive)
+              (my-in-project-root
+               (shell-command
+                (concat "llvm/utils/update_test_checks.py --opt-binary=build/bin/opt " buffer-file-name)))
+              (revert-buffer :NOCONFIRM t))
+            :wk "update ir test")
     "lo" '((lambda ()
              (interactive)
              (my-in-project-root (compile "ionice -c3 nice ninja -C build opt")))
