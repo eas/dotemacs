@@ -428,20 +428,24 @@
         comint-get-old-input #'my-comint-get-old-input)
   (defun my-search-comint-history ()
     (interactive)
-    (insert (completing-read "From comint history: " (ring-elements comint-input-ring))))
+    (insert (completing-read "From comint history: "
+                            (my-presorted-completion-table
+                             (seq-filter (lambda (s) (not (string-empty-p s)))
+                                        (ring-elements comint-input-ring))))))
   (defun my-search-bash-history ()
     (interactive)
     (insert (completing-read "From bash history: "
-                             (seq-reverse
-                              (seq-filter
-                               (lambda (line) (not (string-match "^#" line)))
-                               (split-string
-                                (with-temp-buffer
-                                  (insert-file-contents "~/.bash_eternal_history")
-                                  (buffer-substring-no-properties
-                                   (point-min)
-                                   (point-max)))
-                                "\n" t))))))
+                             (my-presorted-completion-table
+                              (seq-reverse
+                               (seq-filter
+                                (lambda (line) (not (string-match "^#" line)))
+                                (split-string
+                                 (with-temp-buffer
+                                   (insert-file-contents "~/.bash_eternal_history")
+                                   (buffer-substring-no-properties
+                                    (point-min)
+                                    (point-max)))
+                                 "\n" t)))))))
   (my-leader
     'comint-mode-map
     "sh" 'my-search-comint-history
