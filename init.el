@@ -441,7 +441,7 @@
                                 (lambda (line) (not (string-match "^#" line)))
                                 (split-string
                                  (with-temp-buffer
-                                   (insert-file-contents "~/.bash_eternal_history")
+                                   (insert-file-contents "~/.bash_history")
                                    (buffer-substring-no-properties
                                     (point-min)
                                     (point-max)))
