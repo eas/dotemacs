@@ -140,7 +140,7 @@
 ;; merge structures.
 ;; Press 'z' in magit-log refresh menu (L in log buffer)
 ;; Shows current state: [collapsed] or [expanded]
-;; RET/TAB on collapsed lines toggles individual regions
+;; TAB on collapsed lines toggles individual regions, RET shows commit info
 (use-package magit-log-collapse
   :ensure nil
   :after magit)

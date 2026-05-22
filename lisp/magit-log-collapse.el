@@ -105,7 +105,7 @@ instead of just '... 3 commits', preserving the branch merge visualization."
          (last-pos (oref last-section end))
          (first-prefix (my-magit-log-extract-graph-prefix first-section))
          (graph-lines (my-magit-log-extract-all-graph-lines first-pos last-pos))
-         (summary-line (format "... %d commit%s collapsed (press RET to expand)"
+         (summary-line (format "... %d commit%s collapsed (press TAB to expand)"
                               count
                               (if (= count 1) "" "s"))))
     (if graph-lines
@@ -118,7 +118,7 @@ instead of just '... 3 commits', preserving the branch merge visualization."
 
 (defun my-magit-log-collapse-region (beg end)
   "Collapse commits between BEG and END, showing 'N commits collapsed'.
-The collapsed region can be expanded by pressing RET or TAB on the summary line.
+The collapsed region can be expanded by pressing TAB on the summary line.
 
 AI NOTE: This is the manual/interactive collapse command. User selects a region
 containing commit sections and calls this to collapse them.
@@ -132,7 +132,7 @@ Key implementation details:
   * magit-collapsed-state: t=collapsed, nil=expanded
   * magit-collapsed-display: the summary text to show when collapsed
   * magit-collapsed-sections: original section list (for rebuilding if needed)
-- Adds a local keymap to the overlay so RET/TAB work on the summary line
+- Adds a local keymap to the overlay so TAB works on the summary line
 - CRITICAL: Use `display' property, NOT `invisible', to avoid cursor jump issues"
   (interactive "r")
   (unless (derived-mode-p 'magit-log-mode)
@@ -156,7 +156,6 @@ Key implementation details:
       (overlay-put ov 'magit-collapsed-display summary-text)
       (overlay-put ov 'magit-collapsed-sections sections)
       (let ((map (make-sparse-keymap)))
-        (define-key map (kbd "RET") #'my-magit-log-toggle-collapse-at-point)
         (define-key map (kbd "TAB") #'my-magit-log-toggle-collapse-at-point)
         (overlay-put ov 'keymap map))
       (deactivate-mark)
@@ -384,7 +383,6 @@ This makes collapse → expand → collapse cycles much faster for large logs."
                 (overlay-put ov 'magit-collapsed-display summary-text)
                 (overlay-put ov 'magit-collapsed-sections seq)
                 (let ((map (make-sparse-keymap)))
-                  (define-key map (kbd "RET") #'my-magit-log-toggle-collapse-at-point)
                   (define-key map (kbd "TAB") #'my-magit-log-toggle-collapse-at-point)
                   (overlay-put ov 'keymap map))
                 (setq total-collapsed (1+ total-collapsed))
