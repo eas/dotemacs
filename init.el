@@ -47,9 +47,17 @@
 
 (use-package evil
   :init
+  (setq evil-want-integration t)
+  (setq evil-want-keybinding nil) ; Required by evil-collection
   (setq evil-disable-insert-state-bindings t
 	evil-undo-system 'undo-redo)
-  (evil-mode))
+  :config
+  (evil-mode 1))
+
+(use-package evil-collection
+  :after evil
+  :config
+  (evil-collection-init))
 
 ;; Bells and whistles?
 (use-package evil-goggles
@@ -542,7 +550,6 @@
 
 (use-package markdown-ts-mode)
 
-;; TODO: Integrate with evil
 (use-package dired-preview)
 
 (setq compile-command "ionice -c3 nice ninja -C build")
