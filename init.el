@@ -534,6 +534,12 @@
   (modify-syntax-entry ?- "w"))
 (add-hook 'emacs-lisp-mode-hook #'my-dash-as-part-of-word)
 
+(defun my-llvm-syntax-hook ()
+  (interactive)
+  (modify-syntax-entry ?. "w")
+  (modify-syntax-entry ?% "w"))
+(add-hook 'llvm-mode-hook #'my-llvm-syntax-hook)
+
 (use-package markdown-ts-mode)
 
 ;; TODO: Integrate with evil
