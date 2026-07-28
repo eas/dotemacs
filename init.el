@@ -569,6 +569,12 @@
   (require 'eglot-cthier)
   (require 'eglot-marocc))
 
+
+(use-package pi-coding-agent
+  :general
+  ("C-c a" 'pi-coding-agent)
+  ("C-c C-p" 'pi-coding-agent))
+
 ;; (use-package eglot-selran) ;; selection ranges
 ;; (use-package eglot-cthier) ;; call and type hierarchies
 ;; (use-package eglot-marocc) ;; mark occurrences
