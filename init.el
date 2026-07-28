@@ -548,6 +548,12 @@
   (modify-syntax-entry ?% "w"))
 (add-hook 'llvm-mode-hook #'my-llvm-syntax-hook)
 
+(add-to-list 'compilation-error-regexp-alist-alist
+             '(llvm-lit-filecheck
+               "^# | \\(/[^:\n]+\\):\\([0-9]+\\):\\([0-9]+\\):"
+               1 2 3))
+
+(add-to-list 'compilation-error-regexp-alist 'llvm-lit-filecheck)
 (use-package markdown-ts-mode)
 
 (use-package dired-preview)
