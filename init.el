@@ -731,6 +731,17 @@
   (my-command-on-func file func command tgt-buf-right project-right)
   (ediff-buffers tgt-buf-left tgt-buf-right))
 
+(defmacro my-llvm-check-command (targets)
+  `(lambda (arg)
+     (interactive "P")
+     (my-in-project-root
+      (compile
+       (concat
+        (when arg
+          "env LIT_OPTS=\"${LIT_OPTS:+$LIT_OPTS }--update-tests\" ")
+        "ionice -c3 nice ninja -C build "
+        ,targets)))))
+
 (my-leader
     "l" '(:ignore t :wk "llvm")
     "ll" '((lambda ()
@@ -779,14 +790,11 @@
              (interactive)
              (my-in-project-root (compile "ionice -c3 nice ninja -C build VectorizeTests && build/unittests/Transforms/Vectorize/VectorizeTests")))
            :wk "build VectorizeTests unittests")
-    "lu" '((lambda ()
-             (interactive)
-             (my-in-project-root (compile "ionice -c3 nice ninja -C build check-llvm-transforms-loopvectorize check-llvm-analysis-loopaccessanalysis")))
-           :wk "LoopVectorize check-llvm")
-    "lf" '((lambda ()
-             (interactive)
-             (my-in-project-root (compile "ionice -c3 nice ninja -C build check-llvm")))
-           :wk "Full check-llvm")
+    "lu" `(,(my-llvm-check-command
+              "check-llvm-transforms-loopvectorize check-llvm-analysis-loopaccessanalysis")
+            :wk "LoopVectorize check-llvm")
+    "lf" `(,(my-llvm-check-command "check-llvm")
+            :wk "Full check-llvm")
     "le" '((lambda (func)
              (interactive (list (read-string "Function: " (my-get-cur-llvm-func))))
              (let ((buf (generate-new-buffer (concat func ".ll"))))
