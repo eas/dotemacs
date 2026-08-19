@@ -144,6 +144,15 @@
 ;; Add custom lisp directory to load-path
 (add-to-list 'load-path (concat user-emacs-directory "lisp"))
 
+;; In a Magit diff, preview the LLVM function below a FileCheck directive in
+;; the correct old/new revision.  The preview follows point and uses a bottom
+;; side window, so it is useful while reviewing regenerated CHECK lines.
+(use-package magit-llvm-check-context
+  :ensure nil
+  :after magit
+  :hook ((magit-status-mode magit-diff-mode magit-revision-mode)
+         . my-magit-llvm-check-context-mode))
+
 ;; Magit log collapsing - fold/unfold linear commit ranges - useful to study
 ;; merge structures.
 ;; Press 'z' in magit-log refresh menu (L in log buffer)
