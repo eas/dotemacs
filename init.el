@@ -682,10 +682,13 @@
   (llvm-mode)
   (setq-local revert-buffer-function
               (lambda (&optional ignore-auto noconfirm preserve-modes)
-                (interactive)
+                (interactive "P")
+                (when current-prefix-arg
+                  (setq command (read-string "Command: " command
+                                             'my-read-command-history)))
                 (message "My custom revert")
                 (with-current-buffer tgt-buf (erase-buffer))
-                (my-command-on-func file func command tgt-buf))))
+                (my-command-on-func file func command tgt-buf project))))
 
 (defun my-command-on-file (file command tgt-buf &optional project)
   (interactive (list buffer-file-name
@@ -699,10 +702,13 @@
   (llvm-mode)
   (setq-local revert-buffer-function
               (lambda (&optional ignore-auto noconfirm preserve-modes)
-                (interactive)
+                (interactive "P")
+                (when current-prefix-arg
+                  (setq command (read-string "Command: " command
+                                             'my-read-command-history)))
                 (message "My custom revert")
                 (with-current-buffer tgt-buf (erase-buffer))
-                (my-command-on-file file command tgt-buf))))
+                (my-command-on-file file command tgt-buf project))))
 
 (defvar my-compare-opts-history nil)
 (defun my-compare (file func command-common opts-left opts-right tgt-buf-left tgt-buf-right)
