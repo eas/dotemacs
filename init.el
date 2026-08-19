@@ -548,6 +548,11 @@
   (modify-syntax-entry ?% "w"))
 (add-hook 'llvm-mode-hook #'my-llvm-syntax-hook)
 
+;; Use Evil Collection's standard refresh action (`gr') in LLVM buffers.
+;; `revert-buffer' dispatches to the buffer-local command rerun function in
+;; the output buffers created by `my-command-on-func' and `my-command-on-file'.
+(evil-collection-bind 'llvm-mode-map 'refresh #'revert-buffer)
+
 (add-to-list 'compilation-error-regexp-alist-alist
              '(llvm-lit-filecheck
                "^# | \\(/[^:\n]+\\):\\([0-9]+\\):\\([0-9]+\\):"
