@@ -39,6 +39,9 @@
 (defvar-local my-magit-llvm-check-context--last-error nil
   "Reason the last context lookup in this Magit buffer failed.")
 
+(defvar-local my-magit-llvm-check-context--run-prefix-cache nil
+  "Cached (MODIFICATION-TICK . PREFIXES) for a visited source buffer.")
+
 (defconst my-magit-llvm-check-context--directive-regexp
   "[[:alnum:]_][[:alnum:]_-]*\\(?:-\\(?:LABEL\\|NEXT\\|SAME\\|NOT\\|DAG\\|EMPTY\\|COUNT-[0-9]+\\)\\)?"
   "Regexp matching a FileCheck prefix together with an optional directive.")
@@ -78,12 +81,11 @@ For example, `COST-LABEL' and `COST-NEXT' have prefix `COST', while
         (my-magit-llvm-check-context--directive-prefix (match-string-no-properties 1))))))
 
 (defun my-magit-llvm-check-context--check-line-p ()
-  "Return non-nil if the diff line at point is a FileCheck directive.
+  "Return non-nil if the diff line at point looks like a FileCheck directive.
 
-This recognizes the usual `CHECK' prefixes and arbitrary FileCheck prefixes
-when they use a directive suffix such as `COST-LABEL:' or `FOO-NEXT:'.  Only
-actual diff body lines are accepted, so hunk and file headers cannot trigger a
-preview."
+The prefix is verified against the visited source side's RUN lines before a
+context is displayed.  Only actual diff body lines are accepted here, so hunk
+and file headers cannot trigger a preview."
   (my-magit-llvm-check-context--check-prefix-at-point))
 
 (defun my-magit-llvm-check-context--matching-brace (open)
@@ -182,13 +184,89 @@ check blocks immediately preceding the function they describe."
   "Return non-nil if PREFIX is a conventional CHECK prefix."
   (string-match-p "\\`CHECK[[:alnum:]_]*\\'" prefix))
 
-(defun my-magit-llvm-check-context--function-text (start end active-prefix)
+(defun my-magit-llvm-check-context--run-commands ()
+  "Return logical RUN commands in the current LLVM test buffer.
+
+Only the usual semicolon, hash, and C++-style comment spellings are accepted.
+Backslash-continued RUN lines are joined, so FileCheck options on a following
+physical line are included."
+  (save-excursion
+    (goto-char (point-min))
+    (let (commands command)
+      (while (re-search-forward
+              "^[ \t]*\\(?:;\\|#\\|//\\)[ \t]*RUN:[ \t]*\\(.*\\)$" nil t)
+        (let* ((text (match-string-no-properties 1))
+               (trimmed (string-trim-right text))
+               (continued (string-suffix-p "\\" trimmed))
+               (fragment (if continued
+                             (string-trim-right (substring trimmed 0 -1))
+                           text)))
+          (setq command (concat command " " fragment))
+          (unless continued
+            (push (string-trim command) commands)
+            (setq command nil))))
+      ;; Parse a final incomplete command too: it is still useful while a
+      ;; worktree RUN line is being edited.
+      (when command
+        (push (string-trim command) commands))
+      (nreverse commands))))
+
+(defun my-magit-llvm-check-context--filecheck-prefixes-in-command (command)
+  "Return FileCheck prefixes selected by COMMAND.
+
+Each FileCheck invocation without an explicit prefix option selects the
+standard `CHECK' prefix.  Both singular and plural spellings, with either an
+equals sign or a separate argument, are supported."
+  (let ((start 0)
+        prefixes)
+    (while (string-match
+            "\\(?:^\\|[ \t]\\)\\(?:\\(?:[^ \t]*/\\|%\\)?FileCheck\\)\\(?:\\.exe\\)?\\(?:[ \t]\\|$\\)"
+            command start)
+      (let* ((arguments-start (match-end 0))
+             (next-command
+              (string-match "\\(?:[|;]\\|&&\\)" command arguments-start))
+             (arguments (substring command arguments-start next-command))
+             (option-start 0)
+             explicit-prefix)
+        (while (string-match
+                "\\(?:--\\|-\\)check-prefix\\(?:es\\)?\\(?:=\\|[ \t]+\\)\\([^ \t|;&]+\\)"
+                arguments option-start)
+          (let ((value (match-string-no-properties 1 arguments))
+                (end (match-end 0)))
+            (setq explicit-prefix t)
+            (setq prefixes
+                  (nconc prefixes (split-string value "," t)))
+            ;; `split-string' can change match data, so retain END first.
+            (setq option-start end)))
+        (unless explicit-prefix
+          (setq prefixes (nconc prefixes '("CHECK"))))
+        (setq start (or next-command (length command)))))
+    (delete-dups prefixes)))
+
+(defun my-magit-llvm-check-context--run-check-prefixes ()
+  "Return the FileCheck prefixes configured by this buffer's RUN lines.
+
+The result is cached by modification tick.  Consequently this scans a source
+buffer at most once per edit, rather than on every point movement in Magit."
+  (let ((tick (buffer-chars-modified-tick)))
+    (if (and my-magit-llvm-check-context--run-prefix-cache
+             (equal (car my-magit-llvm-check-context--run-prefix-cache) tick))
+        (cdr my-magit-llvm-check-context--run-prefix-cache)
+      (let ((prefixes
+             (delete-dups
+              (apply #'append
+                     (mapcar #'my-magit-llvm-check-context--filecheck-prefixes-in-command
+                             (my-magit-llvm-check-context--run-commands))))))
+        (setq my-magit-llvm-check-context--run-prefix-cache
+              (cons tick prefixes))
+        prefixes))))
+
+(defun my-magit-llvm-check-context--function-text (start end check-prefixes)
   "Return source from START through END, without FileCheck comment lines.
 
 Non-FileCheck comments immediately before and inside a function are retained.
-Besides conventional CHECK prefixes, remove the ACTIVE-PREFIX selected at
-point, allowing non-default FileCheck prefixes such as `COST' to work without
-mistaking unrelated comments such as `NOTE:' for checks."
+Besides conventional CHECK prefixes, remove prefixes selected by actual RUN
+lines in CHECK-PREFIXES."
   (replace-regexp-in-string
    (concat "^[ \t]*;[ \t]*\\("
            my-magit-llvm-check-context--directive-regexp
@@ -197,7 +275,7 @@ mistaking unrelated comments such as `NOTE:' for checks."
      (let ((prefix (my-magit-llvm-check-context--directive-prefix
                     (match-string 1 line))))
        (if (or (my-magit-llvm-check-context--default-check-prefix-p prefix)
-               (and active-prefix (equal prefix active-prefix)))
+               (member prefix check-prefixes))
            ""
          line)))
    (buffer-substring-no-properties start end)))
@@ -236,16 +314,30 @@ context, because a non-empty string is truthy in Lisp."
                     ;; Magit maps a hunk heading to the first changed line.
                     ;; The associated `define' is usually just above it, so
                     ;; the normal enclosing/next definition lookup applies.
-                    (if-let ((bounds
-                              (my-magit-llvm-check-context--function-bounds
-                               source-position)))
-                        (pcase-let ((`(,start ,end ,name) bounds))
-                          (setq context
-                                (list (my-magit-llvm-check-context--function-text
-                                       start end active-prefix)
-                                      name file major-mode side)))
-                      (setq my-magit-llvm-check-context--last-error
-                            "No LLVM `define' form encloses or follows this CHECK"))))))
+                    ;; The source buffer is already visited for that lookup.
+                    ;; RUN-prefix discovery is cached there by modification
+                    ;; tick, making repeated post-command updates cheap.
+                    (let ((check-prefixes
+                           (my-magit-llvm-check-context--run-check-prefixes)))
+                      (cond
+                       ((and active-prefix
+                             (not (member active-prefix check-prefixes)))
+                        (setq my-magit-llvm-check-context--last-error
+                              (format "`%s' is not selected by a FileCheck RUN line"
+                                      active-prefix)))
+                       ((if-let ((bounds
+                                  (my-magit-llvm-check-context--function-bounds
+                                   source-position)))
+                            (pcase-let ((`(,start ,end ,name) bounds))
+                              (setq context
+                                    (list (my-magit-llvm-check-context--function-text
+                                           start end check-prefixes)
+                                          name file major-mode side))
+                              t)
+                          nil))
+                       (t
+                        (setq my-magit-llvm-check-context--last-error
+                              "No LLVM `define' form encloses or follows this CHECK"))))))))
           (error
            (setq my-magit-llvm-check-context--last-error
                  (format "Magit could not visit the source: %s"
