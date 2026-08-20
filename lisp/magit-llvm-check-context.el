@@ -109,16 +109,18 @@ window otherwise.  This mirrors `dired-preview-display-action-alist-dwim'."
     my-magit-llvm-check-context-display-action))
 
 (defun my-magit-llvm-check-context--hunk-heading-p ()
-  "Return non-nil if point is on a unified-diff hunk heading with a function.
+  "Return non-nil if point is on a unified or combined diff hunk heading.
 
-Git appends the function context after the second `@@' in a hunk heading; LLVM
-IR test diffs therefore normally contain the complete `define' header there."
+Git may append a function context after the closing at-signs, but it omits it
+for follow-on hunks within the same function.  Magit maps either heading to
+its first changed source line, so let the ordinary enclosing/next-definition
+lookup decide whether it belongs to an LLVM function."
   (save-excursion
     (beginning-of-line)
-    (looking-at "^@@ .* @@[ \t]+.*\\_<define\\_>")))
+    (looking-at "^@@+ .* @@+\\(?:[ \t]+.*\\)?$")))
 
 (defun my-magit-llvm-check-context--preview-trigger-p ()
-  "Return non-nil if point is on a CHECK line, conflict marker, or LLVM hunk.
+  "Return non-nil if point is on a CHECK line, conflict marker, or diff hunk.
 
 Conflict-marker lines remain associated with the surrounding function, so the
 preview does not disappear while point moves between the alternatives of an
@@ -555,7 +557,7 @@ context, because a non-empty string is truthy in Lisp."
     (cond
      ((not (my-magit-llvm-check-context--preview-trigger-p))
       (setq my-magit-llvm-check-context--last-error
-            "Point is not on a FileCheck directive, conflict marker, or LLVM hunk heading"))
+            "Point is not on a FileCheck directive, conflict marker, or diff hunk heading"))
      ((not (magit-file-at-point))
       (setq my-magit-llvm-check-context--last-error
             "Magit could not determine the file for this diff line"))
