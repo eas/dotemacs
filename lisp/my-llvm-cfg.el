@@ -46,6 +46,9 @@
 (defvar my-llvm-cfg--job nil
   "Process currently generating or rendering a CFG.")
 
+(defconst my-llvm-cfg--output-buffer-name "*my-llvm-cfg output*"
+  "Name of the shared buffer collecting output from the active CFG job.")
+
 (defun my-llvm-cfg--tmux-output (&rest arguments)
   "Run tmux with ARGUMENTS and return its standard output.
 Signal an error when tmux fails, retaining its output in the diagnostic."
@@ -243,8 +246,11 @@ unambiguous even when `opt' chooses a function-dependent filename."
                       ;; not a parent directory.
                       (make-temp-file (expand-file-name "llvm-cfg-" root) t)))
          (prefix (expand-file-name "cfg" directory))
-         (output (generate-new-buffer "*my-llvm-cfg output*"))
+         (output (get-buffer-create my-llvm-cfg--output-buffer-name))
          (opt (expand-file-name my-llvm-cfg-opt)))
+    (with-current-buffer output
+      (let ((inhibit-read-only t))
+        (erase-buffer)))
     (unless (file-executable-p opt)
       (user-error "LLVM opt is not executable: %s" opt))
     (setq my-llvm-cfg--job
@@ -256,6 +262,10 @@ unambiguous even when `opt' chooses a function-dependent filename."
                           "-p" pass
                           "-"
                           "-disable-output")
+           ;; `opt -' must receive EOF after SOURCE-TEXT.  A pty (the
+           ;; default in this Emacs) cannot reliably convey that EOF, leaving
+           ;; `opt' blocked on its standard input.  Use a pipe explicitly.
+           :connection-type 'pipe
            :buffer output
            :stderr output
            :noquery t

@@ -14,6 +14,7 @@
 (require 'magit)
 (require 'magit-diff)
 (require 'smerge-mode)
+(require 'my-llvm-cfg)
 
 (defgroup my-magit-llvm-check-context nil
   "Show LLVM function context for FileCheck lines in Magit."
@@ -542,9 +543,11 @@ containing POSITION before the preview is rendered."
 (defun my-magit-llvm-check-context--context-at-point ()
   "Return context data for the FileCheck line at point, or nil.
 
-The returned value is (TEXT NAME FILE MODE STATE).  STATE is `old' for a
-removed line and `new' otherwise; on a conflict marker, it is that marker's
-state label (such as `HEAD' or a merge-base SHA).  Magit's own visit helper
+The returned value is (TEXT NAME FILE MODE STATE SOURCE-TEXT).  TEXT is the
+function-only preview text, while SOURCE-TEXT is the complete source file from
+the selected revision.  STATE is `old' for a removed line and `new' otherwise;
+on a conflict marker, it is that marker's state label (such as `HEAD' or a
+merge-base SHA).  Magit's own visit helper
 is used to map
 point to the correct line in the correct revision, which also handles staged
 and committed diffs.  In a combined merge diff Magit maps every line to the
@@ -601,7 +604,13 @@ context, because a non-empty string is truthy in Lisp."
                               (setq context
                                     (list (my-magit-llvm-check-context--function-text
                                            start end check-prefixes source-position)
-                                          name file major-mode side))
+                                          name file major-mode side
+                                          ;; `opt' needs the complete module:
+                                          ;; a function-only excerpt can refer
+                                          ;; to metadata, globals, types, or
+                                          ;; declarations defined elsewhere.
+                                          (my-magit-llvm-check-context--conflict-free-text
+                                           (point-min) (point-max) source-position)))
                               t)
                           nil))
                        (t
@@ -647,7 +656,7 @@ preview has ever been rendered."
 Reuse the existing context window before evaluating the adaptive display
 policy.  Once a side window has narrowed the Magit window, reevaluating that
 policy would otherwise choose the bottom and create a second context window."
-  (pcase-let ((`(,text ,name ,file ,_source-mode ,state) context)
+  (pcase-let ((`(,text ,name ,file ,_source-mode ,state . ,_) context)
               (buffer (get-buffer-create my-magit-llvm-check-context--buffer-name)))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
@@ -679,6 +688,49 @@ policy would otherwise choose the bottom and create a second context window."
   (my-magit-llvm-check-context--delete-extra-windows
    (my-magit-llvm-check-context--context-windows t) nil)
   (setq my-magit-llvm-check-context--displayed-from nil))
+
+(defun my-magit-llvm-check-context--render-cfg (context cfg-only)
+  "Render CONTEXT, as returned by `my-magit-llvm-check-context--context-at-point'."
+  (pcase-let ((`(,_text ,name ,_file ,_source-mode ,_state ,source-text)
+               context))
+    (condition-case err
+        (progn
+          ;; The CFG API deliberately interprets strings as file names, so
+          ;; pass the complete, already-resolved historical/worktree source
+          ;; via a buffer.
+          (with-temp-buffer
+            (insert source-text)
+            ;; Context parsing retains LLVM's leading `@', whereas
+            ;; `opt -cfg-func-name' takes the name after it, matching
+            ;; `my-get-cur-llvm-func'.
+            (my-llvm-cfg-render-cfg
+             (current-buffer) (string-remove-prefix "@" name) cfg-only)))
+      (error
+       ;; This can run from `post-command-hook', where an error must still be
+       ;; visible rather than making CFG tracking appear to do nothing.
+       (message "Could not render CFG: %s" (error-message-string err))))))
+
+(defun my-magit-llvm-check-context-render-cfg (&optional cfg-only)
+  "Render the FileCheck context at point as a CFG.
+With CFG-ONLY, use `dot-cfg-only'; otherwise use `dot-cfg'."
+  (interactive "P")
+  (if-let ((context (my-magit-llvm-check-context--context-at-point)))
+      (progn
+        (my-magit-llvm-check-context--render-cfg context cfg-only)
+        (message "Rendering %s for %s"
+                 (if cfg-only "dot-cfg-only" "dot-cfg") (nth 1 context)))
+    (message "%s" (or my-magit-llvm-check-context--last-error
+                      "No FileCheck context found"))))
+
+(defun my-magit-llvm-check-context-render-dot-cfg ()
+  "Render `dot-cfg' once for the FileCheck context at point."
+  (interactive)
+  (my-magit-llvm-check-context-render-cfg nil))
+
+(defun my-magit-llvm-check-context-render-dot-cfg-only ()
+  "Render `dot-cfg-only' once for the FileCheck context at point."
+  (interactive)
+  (my-magit-llvm-check-context-render-cfg t))
 
 (defun my-magit-llvm-check-context-update (&optional force)
   "Update the FileCheck function-context window for point.

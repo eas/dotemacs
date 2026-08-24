@@ -144,18 +144,6 @@
 ;; Add custom lisp directory to load-path
 (add-to-list 'load-path (concat user-emacs-directory "lisp"))
 
-;; In a Magit diff, preview the LLVM function below a FileCheck directive in
-;; the correct old/new revision.  The preview follows point and adaptively uses
-;; a right or bottom side window, so it is useful while reviewing regenerated
-;; CHECK lines.  It is opt-in per Magit buffer with `SPC t c'.
-(use-package magit-llvm-check-context
-  :ensure nil
-  :after magit
-  :general
-  (my-leader
-    :keymaps '(magit-status-mode-map magit-diff-mode-map magit-revision-mode-map)
-    "tc" #'my-magit-llvm-check-context-mode))
-
 (require 'my-llvm-cfg)
 
 ;; Magit log collapsing - fold/unfold linear commit ranges - useful to study
@@ -830,19 +818,41 @@
                (switch-to-buffer buf)
                (llvm-mode)))
            :wk "extract function")
-    "lg" '((lambda ()
-              (interactive)
-              (my-llvm-cfg-render-cfg
-               (if (use-region-p)
-                   (cons (region-beginning) (region-end))
-                 (current-buffer))
-               (my-get-cur-llvm-func) t))
-            :wk "render dot-cfg-only")
-    "lG" '(my-llvm-cfg-render-cfg :wk "render dot-cfg")
     "lc" '(my-command-on-func :wk "command on current func")
     "lC" '(my-command-on-file :wk "command on file")
     "ld" '(my-compare :wk "compare two commands on current func")
     "lD" '(my-compare-projects :wk "compare two projects on current func"))
+
+;; These commands are only meaningful in LLVM source buffers.  Keep the rest
+;; of the `SPC l' LLVM commands global, so project build commands such as
+;; `SPC l o' remain available from any buffer.
+(my-leader
+  :keymaps '(llvm-mode-map llvm-ts-mode-map)
+  "lg" '((lambda ()
+            (interactive)
+            (my-llvm-cfg-render-cfg
+             (if (use-region-p)
+                 (cons (region-beginning) (region-end))
+               (current-buffer))
+             (my-get-cur-llvm-func) t))
+          :wk "render dot-cfg-only")
+  "lG" '(my-llvm-cfg-render-cfg :wk "render dot-cfg"))
+
+;; In a Magit diff, preview the LLVM function below a FileCheck directive in
+;; the correct old/new revision.  The preview follows point and adaptively uses
+;; a right or bottom side window, so it is useful while reviewing regenerated
+;; CHECK lines.  It is opt-in per Magit buffer with `SPC t c'.  `SPC l g' and
+;; `SPC l G' render the context at point once, with `dot-cfg-only' and
+;; `dot-cfg' respectively.
+(use-package magit-llvm-check-context
+  :ensure nil
+  :after magit
+  :general
+  (my-leader
+    :keymaps '(magit-status-mode-map magit-diff-mode-map magit-revision-mode-map)
+    "tc" #'my-magit-llvm-check-context-mode
+    "lg" #'my-magit-llvm-check-context-render-dot-cfg-only
+    "lG" #'my-magit-llvm-check-context-render-dot-cfg))
 
 (defun my-get-lines-between-patterns (start-regexp end-regexp)
   "Get the text between START-REGEXP and END-REGEXP as a string."
