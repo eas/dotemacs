@@ -147,12 +147,14 @@
 ;; In a Magit diff, preview the LLVM function below a FileCheck directive in
 ;; the correct old/new revision.  The preview follows point and adaptively uses
 ;; a right or bottom side window, so it is useful while reviewing regenerated
-;; CHECK lines.
+;; CHECK lines.  It is opt-in per Magit buffer with `SPC t c'.
 (use-package magit-llvm-check-context
   :ensure nil
   :after magit
-  :hook ((magit-status-mode magit-diff-mode magit-revision-mode)
-         . my-magit-llvm-check-context-mode))
+  :general
+  (my-leader
+    :keymaps '(magit-status-mode-map magit-diff-mode-map magit-revision-mode-map)
+    "tc" #'my-magit-llvm-check-context-mode))
 
 (require 'my-llvm-cfg)
 
