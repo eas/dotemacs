@@ -843,8 +843,9 @@
 ;; a right or bottom side window, so it is useful while reviewing regenerated
 ;; CHECK lines.  Its one tracking mode has independently toggleable text,
 ;; a CHECK-section view, `dot-cfg-only', and `dot-cfg' actions under `SPC t c',
-;; `SPC t C', `SPC t g', and `SPC t G'.  `SPC l g' and `SPC l G' render the
-;; context at point once, with `dot-cfg-only' and `dot-cfg' respectively.
+;; `SPC t C', `SPC t g', and `SPC t G'; `SPC t S' stops all tracking.  `SPC l g'
+;; and `SPC l G' render the context at point once, with `dot-cfg-only' and
+;; `dot-cfg' respectively.
 (use-package magit-llvm-check-context
   :ensure nil
   :after magit
@@ -855,6 +856,7 @@
     "tC" #'my-magit-llvm-check-context-toggle-checks
     "tg" #'my-magit-llvm-check-context-toggle-cfg-only
     "tG" #'my-magit-llvm-check-context-toggle-cfg
+    "tS" #'my-magit-llvm-check-context-stop
     "lg" #'my-magit-llvm-check-context-render-dot-cfg-only
     "lG" #'my-magit-llvm-check-context-render-dot-cfg))
 

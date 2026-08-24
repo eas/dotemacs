@@ -949,6 +949,13 @@ mode remains enabled while at least one action is selected."
   (when my-magit-llvm-check-context-mode
     (my-magit-llvm-check-context-schedule-update)))
 
+(defun my-magit-llvm-check-context-stop ()
+  "Stop every FileCheck context tracking action in the current Magit buffer."
+  (interactive)
+  (setq my-magit-llvm-check-context--actions nil)
+  (my-magit-llvm-check-context-mode -1)
+  (message "Stopped all Magit LLVM context tracking"))
+
 (defun my-magit-llvm-check-context-toggle-text ()
   "Toggle tracked text context display."
   (interactive)
