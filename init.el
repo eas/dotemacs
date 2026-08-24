@@ -154,6 +154,8 @@
   :hook ((magit-status-mode magit-diff-mode magit-revision-mode)
          . my-magit-llvm-check-context-mode))
 
+(require 'my-llvm-cfg)
+
 ;; Magit log collapsing - fold/unfold linear commit ranges - useful to study
 ;; merge structures.
 ;; Press 'z' in magit-log refresh menu (L in log buffer)
@@ -826,6 +828,15 @@
                (switch-to-buffer buf)
                (llvm-mode)))
            :wk "extract function")
+    "lg" '((lambda ()
+              (interactive)
+              (my-llvm-cfg-render-cfg
+               (if (use-region-p)
+                   (cons (region-beginning) (region-end))
+                 (current-buffer))
+               (my-get-cur-llvm-func) t))
+            :wk "render dot-cfg-only")
+    "lG" '(my-llvm-cfg-render-cfg :wk "render dot-cfg")
     "lc" '(my-command-on-func :wk "command on current func")
     "lC" '(my-command-on-file :wk "command on file")
     "ld" '(my-compare :wk "compare two commands on current func")
@@ -878,3 +889,10 @@
 (let ((local-init (expand-file-name "local/init.el" user-emacs-directory)))
   (when (file-exists-p local-init)
     (load local-init)))
+
+(use-package kitty-graphics
+  :vc (:url "https://github.com/cashmeredev/kitty-graphics.el.git")
+  :ensure t
+  :config
+  (setq kitty-graphics-enable-video t)   ; optional: inline mpv playback
+  (kitty-graphics-setup))
