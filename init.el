@@ -842,9 +842,9 @@
 ;; the correct old/new revision.  The preview follows point and adaptively uses
 ;; a right or bottom side window, so it is useful while reviewing regenerated
 ;; CHECK lines.  Its one tracking mode has independently toggleable text,
-;; `dot-cfg-only', and `dot-cfg' actions under `SPC t c', `SPC t g', and
-;; `SPC t G'.  `SPC l g' and `SPC l G' render the context at point once, with
-;; `dot-cfg-only' and `dot-cfg' respectively.
+;; a CHECK-section view, `dot-cfg-only', and `dot-cfg' actions under `SPC t c',
+;; `SPC t C', `SPC t g', and `SPC t G'.  `SPC l g' and `SPC l G' render the
+;; context at point once, with `dot-cfg-only' and `dot-cfg' respectively.
 (use-package magit-llvm-check-context
   :ensure nil
   :after magit
@@ -852,6 +852,7 @@
   (my-leader
     :keymaps '(magit-status-mode-map magit-diff-mode-map magit-revision-mode-map)
     "tc" #'my-magit-llvm-check-context-toggle-text
+    "tC" #'my-magit-llvm-check-context-toggle-checks
     "tg" #'my-magit-llvm-check-context-toggle-cfg-only
     "tG" #'my-magit-llvm-check-context-toggle-cfg
     "lg" #'my-magit-llvm-check-context-render-dot-cfg-only
