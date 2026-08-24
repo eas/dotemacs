@@ -41,6 +41,11 @@ selected.  See `display-buffer' for the action-alist format."
   :risky t
   :group 'my-magit-llvm-check-context)
 
+(defcustom my-magit-llvm-check-context-update-delay 0.4
+  "Seconds point must remain idle before updating tracked context."
+  :type 'number
+  :group 'my-magit-llvm-check-context)
+
 (defconst my-magit-llvm-check-context--buffer-name
   "*Magit LLVM CHECK context*")
 
@@ -874,13 +879,14 @@ With CFG-ONLY, use `dot-cfg-only'; otherwise use `dot-cfg'."
         (my-magit-llvm-check-context-update t)))))
 
 (defun my-magit-llvm-check-context-schedule-update ()
-  "Schedule context tracking after point has been stationary for 0.2 seconds."
+  "Schedule context tracking after the configured stationary-point delay."
   (when (timerp my-magit-llvm-check-context--update-timer)
     (cancel-timer my-magit-llvm-check-context--update-timer))
   (let ((state (cons (point) (buffer-chars-modified-tick))))
     (setq my-magit-llvm-check-context--update-timer
           (run-with-idle-timer
-           0.2 nil #'my-magit-llvm-check-context--run-scheduled-update
+           my-magit-llvm-check-context-update-delay nil
+           #'my-magit-llvm-check-context--run-scheduled-update
            (current-buffer) state))))
 
 (defun my-magit-llvm-check-context-update (&optional force)
@@ -888,7 +894,8 @@ With CFG-ONLY, use `dot-cfg-only'; otherwise use `dot-cfg'."
 
 This is suitable for manual refresh.  Tracking uses
 `my-magit-llvm-check-context-schedule-update', which waits for point to remain
-stationary for 0.2 seconds.  With FORCE, ignore the cached point state."
+stationary for `my-magit-llvm-check-context-update-delay'.  With FORCE, ignore
+the cached point state."
   (interactive "P")
   (let ((state (cons (point) (buffer-chars-modified-tick)))
         (interactivep (called-interactively-p 'interactive)))
