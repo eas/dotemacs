@@ -53,6 +53,14 @@ selected.  See `display-buffer' for the action-alist format."
 (defvar-local my-magit-llvm-check-context--last-error nil
   "Reason the last context lookup in this Magit buffer failed.")
 
+(defvar-local my-magit-llvm-check-context--actions nil
+  "Enabled actions for `my-magit-llvm-check-context-mode'.
+
+Each element is one of `text', `cfg', or `cfg-only'.")
+
+(defvar-local my-magit-llvm-check-context--update-timer nil
+  "Idle timer waiting to update the tracked context after point settles.")
+
 (defvar-local my-magit-llvm-check-context--run-prefix-cache nil
   "Cached (MODIFICATION-TICK . PREFIXES) for a visited source buffer.")
 
@@ -543,11 +551,11 @@ containing POSITION before the preview is rendered."
 (defun my-magit-llvm-check-context--context-at-point ()
   "Return context data for the FileCheck line at point, or nil.
 
-The returned value is (TEXT NAME FILE MODE STATE SOURCE-TEXT).  TEXT is the
-function-only preview text, while SOURCE-TEXT is the complete source file from
-the selected revision.  STATE is `old' for a removed line and `new' otherwise;
-on a conflict marker, it is that marker's state label (such as `HEAD' or a
-merge-base SHA).  Magit's own visit helper
+The returned value is (SOURCE-TEXT NAME FILE MODE STATE CHECK-PREFIXES).
+SOURCE-TEXT is the complete source file from the selected revision; individual
+actions extract any function-only presentation they need.  STATE is `old' for
+a removed line and `new' otherwise; on a conflict marker, it is that marker's
+state label (such as `HEAD' or a merge-base SHA).  Magit's own visit helper
 is used to map
 point to the correct line in the correct revision, which also handles staged
 and committed diffs.  In a combined merge diff Magit maps every line to the
@@ -600,17 +608,16 @@ context, because a non-empty string is truthy in Lisp."
                        ((if-let ((bounds
                                   (my-magit-llvm-check-context--function-bounds
                                    source-position)))
-                            (pcase-let ((`(,start ,end ,name) bounds))
+                            (pcase-let ((`(,_start ,_end ,name) bounds))
                               (setq context
-                                    (list (my-magit-llvm-check-context--function-text
-                                           start end check-prefixes source-position)
-                                          name file major-mode side
-                                          ;; `opt' needs the complete module:
-                                          ;; a function-only excerpt can refer
-                                          ;; to metadata, globals, types, or
-                                          ;; declarations defined elsewhere.
-                                          (my-magit-llvm-check-context--conflict-free-text
-                                           (point-min) (point-max) source-position)))
+                                    (list
+                                     ;; Actions receive the entire selected
+                                     ;; module.  In particular, `opt' needs
+                                     ;; metadata, globals, types, and
+                                     ;; declarations outside NAME's body.
+                                     (my-magit-llvm-check-context--conflict-free-text
+                                      (point-min) (point-max) source-position)
+                                     name file major-mode side check-prefixes))
                               t)
                           nil))
                        (t
@@ -650,21 +657,43 @@ preview has ever been rendered."
       (when (window-live-p window)
         (delete-window window)))))
 
+(defun my-magit-llvm-check-context--function-text-for-name
+    (source-text name check-prefixes)
+  "Extract NAME's preview text from complete SOURCE-TEXT.
+
+This belongs to the text action rather than context resolution: CFG actions
+must receive the complete module, including its globals and metadata."
+  (with-temp-buffer
+    (insert source-text)
+    (save-excursion
+      (goto-char (point-min))
+      (catch 'found
+        (while (re-search-forward "^[ \t]*define\\(?:[ \t]\\|$\\)" nil t)
+          (when-let ((bounds
+                      (my-magit-llvm-check-context--definition-bounds
+                       (match-beginning 0))))
+            (when (equal name (nth 2 bounds))
+              (throw 'found
+                     (my-magit-llvm-check-context--function-text
+                      (nth 0 bounds) (nth 1 bounds) check-prefixes
+                      (match-beginning 0))))))
+        ""))))
+
 (defun my-magit-llvm-check-context--render (context)
-  "Render CONTEXT, as returned by `my-magit-llvm-check-context--context-at-point'.
+  "Render the function-only text preview for complete-file CONTEXT.
 
 Reuse the existing context window before evaluating the adaptive display
 policy.  Once a side window has narrowed the Magit window, reevaluating that
 policy would otherwise choose the bottom and create a second context window."
-  (pcase-let ((`(,text ,name ,file ,_source-mode ,state . ,_) context)
+  (pcase-let ((`(,source-text ,name ,file ,_source-mode ,state ,check-prefixes)
+               context)
               (buffer (get-buffer-create my-magit-llvm-check-context--buffer-name)))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
         (erase-buffer)
         (my-magit-llvm-check-context--preview-mode file)
-        ;; `insert' cannot accept a nil TEXT.  Keep the guard here even though
-        ;; the normal lookup path always constructs TEXT from a buffer.
-        (insert (or text ""))
+        (insert (my-magit-llvm-check-context--function-text-for-name
+                 source-text name check-prefixes))
         (goto-char (point-min))
         (when (fboundp 'font-lock-ensure)
           (font-lock-ensure))
@@ -691,8 +720,7 @@ policy would otherwise choose the bottom and create a second context window."
 
 (defun my-magit-llvm-check-context--render-cfg (context cfg-only)
   "Render CONTEXT, as returned by `my-magit-llvm-check-context--context-at-point'."
-  (pcase-let ((`(,_text ,name ,_file ,_source-mode ,_state ,source-text)
-               context))
+  (pcase-let ((`(,source-text ,name . ,_) context))
     (condition-case err
         (progn
           ;; The CFG API deliberately interprets strings as file names, so
@@ -732,13 +760,40 @@ With CFG-ONLY, use `dot-cfg-only'; otherwise use `dot-cfg'."
   (interactive)
   (my-magit-llvm-check-context-render-cfg t))
 
-(defun my-magit-llvm-check-context-update (&optional force)
-  "Update the FileCheck function-context window for point.
+(defun my-magit-llvm-check-context--apply-actions (context)
+  "Apply every enabled tracking action to complete-file CONTEXT."
+  (dolist (action my-magit-llvm-check-context--actions)
+    (pcase action
+      ('text (my-magit-llvm-check-context--render context))
+      ('cfg (my-magit-llvm-check-context--render-cfg context nil))
+      ('cfg-only (my-magit-llvm-check-context--render-cfg context t)))))
 
-This is suitable for `post-command-hook' and is also the interactive command
-for manually refreshing the preview.  Interactively, report why no preview
-was found instead of silently doing nothing.  With FORCE, ignore the cached
-point state."
+(defun my-magit-llvm-check-context--run-scheduled-update (buffer state)
+  "Update BUFFER when it has remained at STATE for the idle delay."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq my-magit-llvm-check-context--update-timer nil)
+      (when (and my-magit-llvm-check-context-mode
+                 my-magit-llvm-check-context--actions
+                 (equal state (cons (point) (buffer-chars-modified-tick))))
+        (my-magit-llvm-check-context-update t)))))
+
+(defun my-magit-llvm-check-context-schedule-update ()
+  "Schedule context tracking after point has been stationary for 0.2 seconds."
+  (when (timerp my-magit-llvm-check-context--update-timer)
+    (cancel-timer my-magit-llvm-check-context--update-timer))
+  (let ((state (cons (point) (buffer-chars-modified-tick))))
+    (setq my-magit-llvm-check-context--update-timer
+          (run-with-idle-timer
+           0.2 nil #'my-magit-llvm-check-context--run-scheduled-update
+           (current-buffer) state))))
+
+(defun my-magit-llvm-check-context-update (&optional force)
+  "Run enabled context actions for point.
+
+This is suitable for manual refresh.  Tracking uses
+`my-magit-llvm-check-context-schedule-update', which waits for point to remain
+stationary for 0.2 seconds.  With FORCE, ignore the cached point state."
   (interactive "P")
   (let ((state (cons (point) (buffer-chars-modified-tick)))
         (interactivep (called-interactively-p 'interactive)))
@@ -747,9 +802,9 @@ point state."
       (setq my-magit-llvm-check-context--last-state state)
       (if-let ((context (my-magit-llvm-check-context--context-at-point)))
           (progn
-            (my-magit-llvm-check-context--render context)
+            (my-magit-llvm-check-context--apply-actions context)
             (when interactivep
-              (message "Showing LLVM context for %s" (nth 1 context))))
+              (message "Updated LLVM context for %s" (nth 1 context))))
         (my-magit-llvm-check-context--hide)
         (when interactivep
           ;; `user-error' is not reliable here with some UI frontends, which
@@ -759,18 +814,68 @@ point state."
           (message "%s" (or my-magit-llvm-check-context--last-error
                             "No FileCheck context found")))))))
 
+(defun my-magit-llvm-check-context-toggle-action (action)
+  "Toggle tracking ACTION in the current Magit buffer.
+
+ACTION is one of `text', `cfg', or `cfg-only'.  The single minor mode remains
+enabled while at least one action is selected."
+  (interactive)
+  (if (memq action my-magit-llvm-check-context--actions)
+      (progn
+        (setq my-magit-llvm-check-context--actions
+              (delq action my-magit-llvm-check-context--actions))
+        (when (eq action 'text)
+          (my-magit-llvm-check-context--hide))
+        (message "Stopped Magit %s tracking" (symbol-name action)))
+    ;; The two graph actions use the one global CFG renderer, so they cannot
+    ;; run concurrently.  Treat them as alternatives while allowing either
+    ;; one to be combined independently with the text action.
+    (when (memq action '(cfg cfg-only))
+      (setq my-magit-llvm-check-context--actions
+            (delq (if (eq action 'cfg) 'cfg-only 'cfg)
+                  my-magit-llvm-check-context--actions)))
+    (push action my-magit-llvm-check-context--actions)
+    (message "Started Magit %s tracking" (symbol-name action)))
+  (if my-magit-llvm-check-context--actions
+      (unless my-magit-llvm-check-context-mode
+        (my-magit-llvm-check-context-mode 1))
+    (when my-magit-llvm-check-context-mode
+      (my-magit-llvm-check-context-mode -1)))
+  ;; The action selection changed even though point did not, so start the
+  ;; stationary-point delay from now rather than waiting for another command.
+  (when my-magit-llvm-check-context-mode
+    (my-magit-llvm-check-context-schedule-update)))
+
+(defun my-magit-llvm-check-context-toggle-text ()
+  "Toggle tracked text context display."
+  (interactive)
+  (my-magit-llvm-check-context-toggle-action 'text))
+
+(defun my-magit-llvm-check-context-toggle-cfg ()
+  "Toggle tracked `dot-cfg' rendering."
+  (interactive)
+  (my-magit-llvm-check-context-toggle-action 'cfg))
+
+(defun my-magit-llvm-check-context-toggle-cfg-only ()
+  "Toggle tracked `dot-cfg-only' rendering."
+  (interactive)
+  (my-magit-llvm-check-context-toggle-action 'cfg-only))
+
 ;;;###autoload
 (define-minor-mode my-magit-llvm-check-context-mode
-  "Automatically preview the LLVM function for a FileCheck diff line.
+  "Track FileCheck context at point using individually enabled actions.
 
-Enable this in Magit status, diff, and revision buffers.  The preview tracks
-point while it is on a `; CHECK...:' line and disappears elsewhere."
+Actions are `text', `cfg', and `cfg-only'; use their toggle commands to select
+them.  Enable this in Magit status, diff, and revision buffers."
   :lighter nil
   (if my-magit-llvm-check-context-mode
-      (progn
-        (add-hook 'post-command-hook #'my-magit-llvm-check-context-update nil t)
-        (my-magit-llvm-check-context-update))
-    (remove-hook 'post-command-hook #'my-magit-llvm-check-context-update t)
+      (add-hook 'post-command-hook
+                #'my-magit-llvm-check-context-schedule-update nil t)
+    (remove-hook 'post-command-hook
+                 #'my-magit-llvm-check-context-schedule-update t)
+    (when (timerp my-magit-llvm-check-context--update-timer)
+      (cancel-timer my-magit-llvm-check-context--update-timer))
+    (setq my-magit-llvm-check-context--update-timer nil)
     (my-magit-llvm-check-context--hide)))
 
 (provide 'magit-llvm-check-context)
