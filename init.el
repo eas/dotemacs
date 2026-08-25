@@ -75,7 +75,7 @@
       (let ((inhibit-read-only t))
         (erase-buffer)
         (insert-file-contents "~/pipe")
-        (llvm-mode)
+        (llvm-ts-mode)
         (setq-local revert-buffer-function
                     (lambda (&optional ignore-auto noconfirm preserve-modes)
                       (interactive)
@@ -548,12 +548,12 @@
   (interactive)
   (modify-syntax-entry ?. "w")
   (modify-syntax-entry ?% "w"))
-(add-hook 'llvm-mode-hook #'my-llvm-syntax-hook)
+(add-hook 'llvm-ts-mode-hook #'my-llvm-syntax-hook)
 
 ;; Use Evil Collection's standard refresh action (`gr') in LLVM buffers.
 ;; `revert-buffer' dispatches to the buffer-local command rerun function in
 ;; the output buffers created by `my-command-on-func' and `my-command-on-file'.
-(evil-collection-bind 'llvm-mode-map 'refresh #'revert-buffer)
+(evil-collection-bind 'llvm-ts-mode-map 'refresh #'revert-buffer)
 
 (add-to-list 'compilation-error-regexp-alist-alist
              '(llvm-lit-filecheck
@@ -681,7 +681,7 @@
             command)
     tgt-buf))
   (pop-to-buffer tgt-buf)
-  (llvm-mode)
+  (llvm-ts-mode)
   (setq-local revert-buffer-function
               (lambda (&optional ignore-auto noconfirm preserve-modes)
                 (interactive "P")
@@ -701,7 +701,7 @@
   (let ((default-directory (or project (project-root (project-current t)))))
    (shell-command (concat command " " file) tgt-buf))
   (pop-to-buffer tgt-buf)
-  (llvm-mode)
+  (llvm-ts-mode)
   (setq-local revert-buffer-function
               (lambda (&optional ignore-auto noconfirm preserve-modes)
                 (interactive "P")
@@ -816,7 +816,7 @@
                  (format "build/bin/llvm-extract --func %s -S %s" func buffer-file-name)
                  buf))
                (switch-to-buffer buf)
-               (llvm-mode)))
+               (llvm-ts-mode)))
            :wk "extract function")
     "lc" '(my-command-on-func :wk "command on current func")
     "lC" '(my-command-on-file :wk "command on file")
