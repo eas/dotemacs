@@ -657,19 +657,33 @@
         "opt -S -p loop-vectorize -mtriple=riscv64 -mattr=+v -vplan-print-after=replaceSymbolicStrides -vplan-print-before=replaceSymbolicStrides"))
 
 (defvar my-read-command-history nil)
+(defun my-command-with-default-opt (command)
+  "Use the project `opt' for COMMAND unless its executable is absolute."
+  (if (file-name-absolute-p (car (split-string command)))
+      command
+    (concat "build/bin/" command)))
+
+(defun my-run-line-command (line)
+  "Extract the `opt' command from LLVM RUN LINE.
+Preserve an absolute path to `opt', when one is present."
+  (let ((opt-pos (string-search "opt " line)))
+    (substring
+     line
+     (if (and (> opt-pos 0) (eq (aref line (1- opt-pos)) ?/))
+         ;; The preceding slash identifies an absolute `.../opt' token.
+         (string-match "[^[:space:]]+$" (substring line 0 opt-pos))
+       opt-pos)
+     (string-search "|" line))))
+
 (defun my-read-command ()
   (let ((commands (append
                    my-opt-commands
-                   (mapcar (lambda (line)
-                             (substring
-                              line
-                              (string-search "opt " line)
-                              (string-search "|" line)))
-                           (my-get-RUN-lines)))))
-    (concat "build/bin/"
-            (replace-regexp-in-string
-             "<? *%s " " "
-             (completing-read "Command: " (my-presorted-completion-table commands) nil nil nil 'my-read-command-history)))))
+                   (mapcar #'my-run-line-command (my-get-RUN-lines)))))
+    (let ((command
+           (replace-regexp-in-string
+            "<? *%s " " "
+            (completing-read "Command: " (my-presorted-completion-table commands) nil nil nil 'my-read-command-history))))
+      (my-command-with-default-opt command))))
 
 (defun my-command-on-func (file func command tgt-buf &optional project)
   (interactive (let* ((func (my-get-cur-llvm-func))
