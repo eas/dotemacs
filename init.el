@@ -139,7 +139,30 @@
 
 (use-package magit
   :general
-  ("C-c m" 'magit))
+  ("C-c m" 'magit)
+  :config
+  ;; Terminal Emacs cannot distinguish S-RET.  Copy its *actual* definition
+  ;; to M-RET in the same overlay section maps, including any customization
+  ;; Evil Collection has made to the S-RET action.
+  (dolist (entry `((magit-file-section-map . ,magit-file-section-map)
+                   (magit-hunk-section-map . ,magit-hunk-section-map)))
+    (let* ((map-name (car entry))
+           (map (cdr entry))
+           (binding (lookup-key map (kbd "M-RET"))))
+      (when binding
+        (display-warning
+         'my-magit
+         (format "%s already binds M-RET to %S; replacing it with S-RET's binding"
+                 map-name binding)
+         :warning))
+      (define-key map (kbd "M-RET")
+        (lookup-key map (kbd "S-<return>"))))
+  ;; The default C-x 4 RET action visits the diff-context blob in another
+  ;; window; use the worktree variant instead.  Bind both terminal RET and
+  ;; GUI <return> event spellings.
+  (dolist (key '("C-x 4 RET" "C-x 4 <return>"))
+    (define-key magit-diff-section-map (kbd key)
+      #'magit-diff-visit-worktree-file-other-window))))
 
 ;; Add custom lisp directory to load-path
 (add-to-list 'load-path (concat user-emacs-directory "lisp"))
