@@ -708,7 +708,22 @@ Preserve an absolute path to `opt', when one is present."
             (completing-read "Command: " (my-presorted-completion-table commands) nil nil nil 'my-read-command-history))))
       (my-command-with-default-opt command))))
 
-(defun my-command-on-func (file func command tgt-buf &optional project)
+(defvar-local my-llvm-rerun-function nil
+  "Function that reruns the command which produced this LLVM output buffer.
+It accepts an output buffer, an optional OTHER-WINDOW flag, and an optional
+PROMPT-FOR-COMMAND flag.")
+
+(defun my-llvm-revert-buffer-other-window (&optional prompt-for-command)
+  "Rerun this LLVM output command in a fresh buffer in another window.
+When PROMPT-FOR-COMMAND is non-nil, prompt for an updated command.  The
+current output buffer is deliberately left untouched."
+  (interactive "P")
+  (unless my-llvm-rerun-function
+    (user-error "This buffer has no saved LLVM command to rerun"))
+  (funcall my-llvm-rerun-function (generate-new-buffer "*llvm*") t
+           prompt-for-command))
+
+(defun my-command-on-func (file func command tgt-buf &optional project other-window)
   (interactive (let* ((func (my-get-cur-llvm-func))
                       (command (my-read-command))
                       (project (when current-prefix-arg
@@ -727,19 +742,41 @@ Preserve an absolute path to `opt', when one is present."
             func
             command)
     tgt-buf))
-  (pop-to-buffer tgt-buf)
+  (if other-window
+      (switch-to-buffer-other-window tgt-buf)
+    (pop-to-buffer tgt-buf))
   (llvm-ts-mode)
-  (setq-local revert-buffer-function
-              (lambda (&optional ignore-auto noconfirm preserve-modes)
-                (interactive "P")
-                (when current-prefix-arg
-                  (setq command (read-string "Command: " command
-                                             'my-read-command-history)))
-                (message "My custom revert")
-                (with-current-buffer tgt-buf (erase-buffer))
-                (my-command-on-func file func command tgt-buf project))))
+  (let ((rerun
+         (lambda (new-tgt-buf &optional new-other-window prompt-for-command)
+           (let ((rerun-command
+                  (if prompt-for-command
+                      (read-string "Command: " command 'my-read-command-history)
+                    command)))
+             ;; An in-place `revert-buffer' retains its historical behavior:
+             ;; its new command becomes the command it will rerun next time.
+             ;; An other-window rerun must leave this buffer's state alone.
+             (when (and prompt-for-command (not new-other-window))
+               (setq command rerun-command))
+             (message "My custom revert")
+             (with-current-buffer new-tgt-buf (erase-buffer))
+             (my-command-on-func file func rerun-command new-tgt-buf project
+                                 new-other-window)))))
+    (setq-local my-llvm-rerun-function rerun)
+    (setq-local revert-buffer-function
+                (lambda (&optional ignore-auto noconfirm preserve-modes)
+                  (interactive "P")
+                  (funcall rerun tgt-buf nil current-prefix-arg)))))
 
-(defun my-command-on-file (file command tgt-buf &optional project)
+(defun my-command-on-func-other-window (file func command &optional project)
+  "Run COMMAND on FUNC into a fresh LLVM buffer in another window."
+  (interactive (let* ((func (my-get-cur-llvm-func))
+                      (command (my-read-command))
+                      (project (when current-prefix-arg
+                                 (project-prompt-project-dir))))
+                 (list buffer-file-name func command project)))
+  (my-command-on-func file func command (generate-new-buffer "*llvm*") project t))
+
+(defun my-command-on-file (file command tgt-buf &optional project other-window)
   (interactive (list buffer-file-name
                      (my-read-command)
                      "*llvm*"
@@ -747,17 +784,37 @@ Preserve an absolute path to `opt', when one is present."
                        (project-prompt-project-dir))))
   (let ((default-directory (or project (project-root (project-current t)))))
    (shell-command (concat command " " file) tgt-buf))
-  (pop-to-buffer tgt-buf)
+  (if other-window
+      (switch-to-buffer-other-window tgt-buf)
+    (pop-to-buffer tgt-buf))
   (llvm-ts-mode)
-  (setq-local revert-buffer-function
-              (lambda (&optional ignore-auto noconfirm preserve-modes)
-                (interactive "P")
-                (when current-prefix-arg
-                  (setq command (read-string "Command: " command
-                                             'my-read-command-history)))
-                (message "My custom revert")
-                (with-current-buffer tgt-buf (erase-buffer))
-                (my-command-on-file file command tgt-buf project))))
+  (let ((rerun
+         (lambda (new-tgt-buf &optional new-other-window prompt-for-command)
+           (let ((rerun-command
+                  (if prompt-for-command
+                      (read-string "Command: " command 'my-read-command-history)
+                    command)))
+             ;; See `my-command-on-func' for why only in-place reverts update
+             ;; the saved command.
+             (when (and prompt-for-command (not new-other-window))
+               (setq command rerun-command))
+             (message "My custom revert")
+             (with-current-buffer new-tgt-buf (erase-buffer))
+             (my-command-on-file file rerun-command new-tgt-buf project
+                                 new-other-window)))))
+    (setq-local my-llvm-rerun-function rerun)
+    (setq-local revert-buffer-function
+                (lambda (&optional ignore-auto noconfirm preserve-modes)
+                  (interactive "P")
+                  (funcall rerun tgt-buf nil current-prefix-arg)))))
+
+(defun my-command-on-file-other-window (file command &optional project)
+  "Run COMMAND on FILE into a fresh LLVM buffer in another window."
+  (interactive (list buffer-file-name
+                     (my-read-command)
+                     (when current-prefix-arg
+                       (project-prompt-project-dir))))
+  (my-command-on-file file command (generate-new-buffer "*llvm*") project t))
 
 (defvar my-compare-opts-history nil)
 (defun my-compare (file func command-common opts-left opts-right tgt-buf-left tgt-buf-right)
@@ -869,6 +926,19 @@ Preserve an absolute path to `opt', when one is present."
     "lC" '(my-command-on-file :wk "command on file")
     "ld" '(my-compare :wk "compare two commands on current func")
     "lD" '(my-compare-projects :wk "compare two projects on current func"))
+
+;; Other-window forms retain the `my-leader' hierarchy.  They allocate a new
+;; output buffer, and `u' reruns the command saved by an existing output buffer
+;; without modifying that buffer.
+(my-leader
+  :prefix "C-x 4 SPC"
+  :global-prefix "C-x 4 C-c"
+  "lc" '(my-command-on-func-other-window
+          :wk "command on current func (new other window)")
+  "lC" '(my-command-on-file-other-window
+          :wk "command on file (new other window)")
+  "u" '(my-llvm-revert-buffer-other-window
+         :wk "revert in new other-window buffer"))
 
 ;; These commands are only meaningful in LLVM source buffers.  Keep the rest
 ;; of the `SPC l' LLVM commands global, so project build commands such as
