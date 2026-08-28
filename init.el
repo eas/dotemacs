@@ -613,7 +613,44 @@
 (use-package pi-coding-agent
   :general
   ("C-c a" 'pi-coding-agent)
-  ("C-c C-p" 'pi-coding-agent))
+  ("C-c C-p" 'pi-coding-agent)
+  :config
+  ;; `agent_settled' means Pi has finished retries, compaction retries, and
+  ;; queued follow-ups, unlike `agent_end' which can occur between turns.
+  (defun my-pi-coding-agent-notify-iterm2 (message)
+    "Show MESSAGE as a native iTerm2 notification through tmux."
+    (when (getenv "TMUX")
+      ;; tmux DCS passthrough; requires `set -g allow-passthrough on' in
+      ;; ~/.tmux.conf.  OSC 9 is iTerm2's notification escape sequence.
+      (send-string-to-terminal
+       (concat "\ePtmux;\e\e]9;" message "\a\e\\"))))
+
+  (defun my-pi-coding-agent-session-visible-p ()
+    "Whether the current Pi session's chat buffer is visible.
+The linked input buffer alone does not suppress a completion notification."
+    ;; This predicate is called by Pi's display handler, whose current buffer
+    ;; is the session chat buffer.  Outside such a handler (e.g. M-: tests
+    ;; from init.el), there is no Pi session to suppress a notification for.
+    (and (derived-mode-p 'pi-coding-agent-chat-mode)
+         (get-buffer-window (current-buffer) (selected-frame))))
+
+  (defun my-pi-coding-agent-ring-on-settled (event)
+    "Notify once Pi has fully completed a request."
+    (when (equal (plist-get event :type) "agent_settled")
+      ;; The local terminal bell and tmux status message are unobtrusive when
+      ;; Pi is already visible.  Suppress only the more disruptive macOS
+      ;; notification in that case.
+      (ding)
+      (when (getenv "TMUX")
+        (call-process "tmux" nil nil nil "display-message" "Pi finished"))
+      (unless (my-pi-coding-agent-session-visible-p)
+        (my-pi-coding-agent-notify-iterm2 "Pi finished (without run-at-time)")
+        ;; This event is dispatched from Pi's asynchronous process filter.
+        ;; A short delay ensures terminal output occurs outside that filter;
+        ;; a zero-delay timer can still run too early in terminal Emacs.
+        (run-at-time 1 nil #'my-pi-coding-agent-notify-iterm2 "Pi finished"))))
+  (advice-add 'pi-coding-agent--handle-display-event :after
+              #'my-pi-coding-agent-ring-on-settled))
 
 ;; (use-package eglot-selran) ;; selection ranges
 ;; (use-package eglot-cthier) ;; call and type hierarchies
