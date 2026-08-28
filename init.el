@@ -617,21 +617,61 @@
   :config
   ;; `agent_settled' means Pi has finished retries, compaction retries, and
   ;; queued follow-ups, unlike `agent_end' which can occur between turns.
-  (defun my-pi-coding-agent-notify-iterm2 (message)
-    "Show MESSAGE as a native iTerm2 notification through tmux."
+  (defun my-pi-coding-agent-tmux-client-ttys ()
+    "Return terminal devices for clients attached to this tmux server."
     (when (getenv "TMUX")
-      ;; tmux DCS passthrough; requires `set -g allow-passthrough on' in
-      ;; ~/.tmux.conf.  OSC 9 is iTerm2's notification escape sequence.
-      (send-string-to-terminal
-       (concat "\ePtmux;\e\e]9;" message "\a\e\\"))))
+      (condition-case nil
+          (with-temp-buffer
+            (when (zerop (call-process "tmux" nil t nil "list-clients" "-F"
+                                        "#{client_tty}"))
+              (let (ttys)
+                (dolist (tty (split-string (buffer-string) "\n" t))
+                  (unless (member tty ttys)
+                    (push tty ttys)))
+                (nreverse ttys))))
+        (error nil))))
+
+  (defun my-pi-coding-agent-notify-iterm2 (message)
+    "Show MESSAGE as a native iTerm2 notification in tmux client terminals."
+    (when (getenv "TMUX")
+      ;; A background pane's output is not forwarded by tmux to its client.
+      ;; Write OSC 9 to each attached client's tty instead, so the active
+      ;; terminal receives it even when this Emacs window is in the background.
+      (let ((notification (concat "\e]9;" message "\a"))
+            (ttys (my-pi-coding-agent-tmux-client-ttys)))
+        (if ttys
+            (dolist (tty ttys)
+              (condition-case nil
+                  (with-temp-buffer
+                    (insert notification)
+                    (write-region (point-min) (point-max) tty t 'silent))
+                (file-error nil)))
+          ;; Fallback for an unusual tmux setup where no client tty is known.
+          ;; Requires `set -g allow-passthrough on' in ~/.tmux.conf.
+          (send-string-to-terminal
+           (concat "\ePtmux;\e\e]9;" message "\a\e\\"))))))
+
+  (defun my-pi-coding-agent-tmux-window-active-p ()
+    "Whether the tmux window containing this Emacs is active.
+Return non-nil outside tmux, and nil if tmux cannot identify the window."
+    (if-let ((pane (getenv "TMUX_PANE")))
+        (condition-case nil
+            (with-temp-buffer
+              (and (zerop (call-process "tmux" nil t nil "display-message"
+                                        "-p" "-t" pane "#{window_active}"))
+                   (string= (string-trim (buffer-string)) "1")))
+          (error nil))
+      (not (getenv "TMUX"))))
 
   (defun my-pi-coding-agent-session-visible-p ()
-    "Whether the current Pi session's chat buffer is visible.
+    "Whether the current Pi session's chat buffer is visible and foregrounded.
 The linked input buffer alone does not suppress a completion notification."
     ;; This predicate is called by Pi's display handler, whose current buffer
     ;; is the session chat buffer.  Outside such a handler (e.g. M-: tests
     ;; from init.el), there is no Pi session to suppress a notification for.
-    (and (derived-mode-p 'pi-coding-agent-chat-mode)
+    ;; A visible buffer in a background tmux window must not suppress it.
+    (and (my-pi-coding-agent-tmux-window-active-p)
+         (derived-mode-p 'pi-coding-agent-chat-mode)
          (get-buffer-window (current-buffer) (selected-frame))))
 
   (defun my-pi-coding-agent-ring-on-settled (event)
@@ -644,11 +684,10 @@ The linked input buffer alone does not suppress a completion notification."
       (when (getenv "TMUX")
         (call-process "tmux" nil nil nil "display-message" "Pi finished"))
       (unless (my-pi-coding-agent-session-visible-p)
-        (my-pi-coding-agent-notify-iterm2 "Pi finished (without run-at-time)")
-        ;; This event is dispatched from Pi's asynchronous process filter.
-        ;; A short delay ensures terminal output occurs outside that filter;
-        ;; a zero-delay timer can still run too early in terminal Emacs.
-        (run-at-time 1 nil #'my-pi-coding-agent-notify-iterm2 "Pi finished"))))
+        ;; This writes directly to the attached tmux clients' TTYs, rather
+        ;; than through Pi's asynchronous process filter, so no timer is
+        ;; needed to defer terminal output.
+        (my-pi-coding-agent-notify-iterm2 "Pi finished"))))
   (advice-add 'pi-coding-agent--handle-display-event :after
               #'my-pi-coding-agent-ring-on-settled))
 
